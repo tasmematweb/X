@@ -3,46 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tènvora | الإبداع الرقمي المتكامل</title>
+    <title>EUX | الإبداع الرقمي المتكامل</title>
     <style>
-        .whatsapp-float {
-            position: fixed; 
-            width: 60px;
-            height: 60px;
-            bottom: 20px;    
-            right: 20px;     
-            background-color: #25d366;
-            color: #FFF;
-            border-radius: 50px;
-            text-align: center;
-            font-size: 30px;
-            box-shadow: 2px 2px 3px #999;
-            z-index: 1000;   
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .whatsapp-float img {
-            width: 35px;
-            height: 35px;
-        }
-
-        .whatsapp-float:hover {
-            background-color: #128c7e;
-            transform: scale(1.1);
-        }
-
         :root {
-            --primary: #78a0ff; 
-            --primary-glow: rgba(120, 160, 255, 0.6);
-            --bg-deep: #05070a; 
-            --text-high: #f8fafc; 
-            --text-mid: #94a3b8; 
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --neon-shadow: 0 0 20px rgba(120, 160, 255, 0.2);
-            --neon-hover: 0 0 40px rgba(120, 160, 255, 0.5);
+            /* تعديل الألوان للخلفية البيضاء وإضاءة زرقاء */
+            --primary: #0066ff; 
+            --primary-glow: rgba(0, 102, 255, 0.3);
+            --bg-deep: #ffffff; 
+            --text-high: #1a1a1a; 
+            --text-mid: #4a5568; 
+            --glass-border: rgba(0, 102, 255, 0.1);
+            --neon-shadow: 0 10px 30px rgba(0, 102, 255, 0.1);
+            --neon-hover: 0 15px 40px rgba(0, 102, 255, 0.2);
             --ease: cubic-bezier(0.19, 1, 0.22, 1);
         }
 
@@ -60,87 +32,89 @@
             text-align: center; 
         }
 
-        /* --- Loader --- */
+        /* --- WhatsApp Float (أبيض) --- */
+        .whatsapp-float {
+            position: fixed; 
+            width: 60px; height: 60px;
+            bottom: 20px; right: 20px;     
+            background-color: #ffffff; /* لون أبيض */
+            border-radius: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;   
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        .whatsapp-float img { width: 35px; height: 35px; }
+        .whatsapp-float:hover { transform: scale(1.1); box-shadow: 0 8px 25px rgba(0,102,255,0.2); }
+
+        /* --- Loader (EUX) --- */
         #loader {
             position: fixed; inset: 0; background: var(--bg-deep); z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .loader-logo { font-size: 32px; font-weight: 900; letter-spacing: 6px; text-shadow: 0 0 15px var(--primary); color: #fff; margin-bottom: 20px; }
-        .loader-bar { width: 220px; height: 2px; background: rgba(255,255,255,0.05); position: relative; }
-        .loader-prog { position: absolute; height: 100%; width: 0; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: load 2.5s forwards; }
+        .loader-logo { font-size: 40px; font-weight: 900; letter-spacing: 8px; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); margin-bottom: 20px; }
+        .loader-bar { width: 220px; height: 3px; background: #f0f0f0; position: relative; border-radius: 10px; }
+        .loader-prog { position: absolute; height: 100%; width: 0; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: load 2.5s forwards; border-radius: 10px; }
         @keyframes load { to { width: 100%; } }
 
-        /* --- Background --- */
-        .mesh-bg { position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 50% 50%, #0f172a 0%, #05070a 100%); }
-        
-        .navbar { position: fixed; top: 0; width: 100%; padding: 20px 8%; display: flex; justify-content: center; z-index: 1000; background: rgba(5,7,10,0.8); backdrop-filter: blur(15px); border-bottom: 1px solid var(--glass-border); }
-        .nav-logo { font-size: 24px; font-weight: 800; color: var(--primary); text-shadow: 0 0 15px var(--primary-glow); letter-spacing: 2px; }
+        /* --- Navbar --- */
+        .navbar { position: fixed; top: 0; width: 100%; padding: 20px 8%; display: flex; justify-content: center; z-index: 1000; background: rgba(255,255,255,0.8); backdrop-filter: blur(15px); border-bottom: 1px solid var(--glass-border); }
+        .nav-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: 2px; }
 
-        section { padding: 120px 10%; position: relative; max-width: 1000px; margin: auto; }
+        section { padding: 100px 10%; position: relative; max-width: 1000px; margin: auto; }
 
         /* --- Hero --- */
         .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .logo-glow { 
-            font-size: clamp(60px, 12vw, 120px); font-weight: 900; 
-            background: linear-gradient(180deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: float 6s ease-in-out infinite; filter: drop-shadow(0 0 20px var(--primary-glow));
+            font-size: clamp(80px, 15vw, 150px); font-weight: 900; 
+            color: var(--primary);
+            filter: drop-shadow(0 0 30px var(--primary-glow));
+            animation: float 6s ease-in-out infinite;
         }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-        .hero p { font-size: 1.3rem; color: var(--text-mid); margin: 30px 0; max-width: 800px; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .hero p { font-size: 1.3rem; color: var(--text-mid); margin: 30px 0; }
 
-        /* --- Image Styles --- */
+        /* --- Images --- */
         .img-container {
             width: 100%; max-width: 850px; margin: 40px auto;
-            border-radius: 40px; overflow: hidden;
+            border-radius: 30px; overflow: hidden;
             border: 1px solid var(--glass-border);
             box-shadow: var(--neon-shadow);
             transition: 0.6s var(--ease);
-            position: relative;
         }
-        .img-container:hover {
-            box-shadow: var(--neon-hover);
-            transform: scale(1.02);
-            border-color: var(--primary);
-        }
-        .img-container img { width: 100%; height: auto; display: block; opacity: 0.85; transition: 0.6s; }
-        .img-container:hover img { opacity: 1; }
+        .img-container:hover { transform: scale(1.02); box-shadow: var(--neon-hover); }
+        .img-container img { width: 100%; height: auto; display: block; }
 
-        /* --- Cards Content --- */
+        /* --- Cards --- */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin: 60px 0; }
         .card { 
-            background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); 
-            padding: 35px; border-radius: 30px; transition: 0.5s var(--ease);
-            box-shadow: var(--neon-shadow);
+            background: #ffffff; border: 1px solid var(--glass-border); 
+            padding: 35px; border-radius: 25px; transition: 0.5s;
+            box-shadow: 5px 5px 20px rgba(0,0,0,0.02);
         }
-        .card:hover { border-color: var(--primary); box-shadow: var(--neon-hover); background: rgba(120,160,255,0.02); transform: translateY(-5px); }
-        .card h3 { color: var(--primary); margin-bottom: 15px; text-shadow: 0 0 10px var(--primary-glow); }
-
-        /* --- Text Highlights --- */
-        .highlight-text { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 20px; line-height: 1.4; }
+        .card:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: var(--neon-hover); }
+        .card h3 { color: var(--primary); margin-bottom: 15px; }
 
         /* --- Buttons --- */
         .btn-neon {
             display: inline-block; padding: 18px 50px; border-radius: 60px; 
-            background: #000; color: #fff; border: 1px solid var(--primary);
+            background: var(--primary); color: #fff; border: none;
             cursor: pointer; font-weight: 700; text-decoration: none;
-            box-shadow: var(--neon-shadow); transition: 0.4s; font-size: 18px;
+            box-shadow: 0 10px 20px var(--primary-glow); transition: 0.4s; font-size: 18px;
         }
-        .btn-neon:hover { box-shadow: var(--neon-hover); transform: scale(1.08); background: var(--primary); color: #000; }
+        .btn-neon:hover { transform: scale(1.05); box-shadow: 0 15px 30px var(--primary-glow); }
 
-        /* --- Modal Form --- */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { width: 90%; max-width: 550px; background: #0a0c14; padding: 50px; border-radius: 40px; border: 1px solid var(--primary); box-shadow: var(--neon-hover); }
+        /* --- Modal --- */
+        .modal { position: fixed; inset: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { width: 90%; max-width: 500px; background: #fff; padding: 40px; border-radius: 30px; border: 1px solid var(--primary); box-shadow: var(--neon-hover); }
         .modal.open { display: flex; }
-        input, textarea { width: 100%; padding: 18px; margin-bottom: 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 15px; color: #fff; font-size: 16px; }
+        input, textarea { width: 100%; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border: 1px solid #eee; border-radius: 12px; color: #333; }
 
-        .reveal { opacity: 0; transform: translateY(40px); transition: 1.2s var(--ease); }
+        .reveal { opacity: 0; transform: translateY(30px); transition: 1s var(--ease); }
         .reveal.active { opacity: 1; transform: translateY(0); }
 
-        .social-dock { display: flex; gap: 20px; justify-content: center; margin-top: 40px; }
-        .social-dock a { width: 55px; height: 55px; background: rgba(255,255,255,0.03); border-radius: 15px; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: 1px solid var(--glass-border); }
-        .social-dock a:hover { border-color: var(--primary); box-shadow: var(--neon-shadow); transform: translateY(-8px); background: rgba(120,160,255,0.05); }
-        .social-dock img { width: 28px; height: 28px; filter: grayscale(1); }
-        .social-dock a:hover img { filter: grayscale(0); }
+        .highlight-text { font-size: 1.8rem; font-weight: 700; color: var(--text-high); }
     </style>
 </head>
 <body>
@@ -149,96 +123,77 @@
     </a>
 
     <div id="loader">
-        <div class="loader-logo">TÈNVORA</div>
+        <div class="loader-logo">EUX</div>
         <div class="loader-bar"><div class="loader-prog"></div></div>
     </div>
 
-    <div class="mesh-bg"></div>
-
     <nav class="navbar">
-        <div class="nav-logo">TÈNVORA</div>
+        <div class="nav-logo">EUX</div>
     </nav>
 
     <main>
         <section class="hero">
-            <h1 class="logo-glow reveal">Tènvora</h1>
-            <p class="reveal">نحن لسنا مجرد مبرمجين عاديين؛ نحن مجموعة من المبدعين الذين يحولون الأفكار إلى واقع رقمي نابض بالحياة.</p>
+            <h1 class="logo-glow reveal">EUX</h1>
+            <p class="reveal">نحن مجموعة من المبدعين في EUX نحول الأفكار إلى واقع رقمي متطور يعكس قوة علامتك التجارية.</p>
             
             <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/1c/c8/8f/1cc88f3548685febe23d595981a3e20d.jpg" alt="Digital Creation">
+                <img src="https://i.pinimg.com/736x/1c/c8/8f/1cc88f3548685febe23d595981a3e20d.jpg" alt="EUX Creation">
             </div>
-
-            <p class="reveal">نؤمن بأن العظمة تكمن في التفاصيل، لذلك نتميز بـ الدقة في التنفيذ وكأن كل موقع هو تحفة فنية فريدة.</p>
         </section>
 
         <section>
-            <h2 class="highlight-text reveal">في عالم الأعمال، الوقت هو أثمن ما تملك، ونحن نضمن لك السرعة في الإنجاز دون التضحية أبداً بجودة العمل.</h2>
+            <h2 class="highlight-text reveal">السرعة والدقة في EUX هي ما يميزنا عن الآخرين.</h2>
             <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/b1/e1/40/b1e1408bce422fd785750620a4fe15f3.jpg" alt="Performance and Speed">
+                <img src="https://i.pinimg.com/736x/b1/e1/40/b1e1408bce422fd785750620a4fe15f3.jpg" alt="Performance">
             </div>
             <div class="grid">
                 <div class="card reveal">
-                    <h3>آراء عملائنا</h3>
-                    <p>لا نكتفي بادعاء التميز، بل نثبت ذلك من خلال آراء جميع عملائنا الذين هم خير دليل على جودة شراكتنا.</p>
+                    <h3>رؤية EUX</h3>
+                    <p>نسعى لأن نكون الشريك التقني الأول لكل طموح يبحث عن التميز في العالم الرقمي.</p>
                 </div>
                 <div class="card reveal">
-                    <h3>الحقيقة والأفضلية</h3>
-                    <p>نحن الأفضل، وهذا ليس مجرد شعار، بل حقيقة تؤكدها تجارب من تعاملوا معنا ووثقوا بخبراتنا.</p>
+                    <h3>لماذا نحن؟</h3>
+                    <p>لأننا في EUX نهتم بأدق التفاصيل البرمجية والبصرية لنضمن لك تجربة مستخدم فريدة.</p>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2 class="highlight-text reveal">خدماتنا لا تتوقف عند البرمجة فقط، بل ننشئ لك الهوية البصرية المتكاملة.</h2>
-            
+            <h2 class="highlight-text reveal">نصنع لك هوية بصرية تعيش طويلاً.</h2>
             <div class="img-container reveal">
                 <img src="https://i.pinimg.com/736x/e7/0e/a4/e70ea418df1fa3bc351e4556067bca9e.jpg" alt="Visual Identity">
             </div>
-
-            <p class="reveal">سواء كنت بحاجة إلى شعار يعبر عنك، أو ألوان تحكي قصتك، نحن نصنع لك هوية متكاملة قبل بناء الموقع.</p>
+            <p class="reveal">في EUX، لا نبني مواقع فقط، بل نصمم كياناً رقمياً متكاملاً يعبر عن قصتك.</p>
         </section>
 
         <section>
             <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/69/e0/03/69e00356be78026ad18dbe860efc835c.jpg" alt="Professionalism">
+                <img src="https://i.pinimg.com/736x/69/e0/03/69e00356be78026ad18dbe860efc835c.jpg" alt="Team">
             </div>
-            <p class="reveal">نتعامل مع كل مشروع وكأنه مشروعنا الشخصي، نمنحه من الاهتمام والدقة ما يضمن نجاحه المستدام.</p>
-        </section>
-
-        <section>
             <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/2d/76/5f/2d765f57bf4e726d5bf4926fc19ec41e.jpg" alt="Success Partners">
+                <img src="https://i.pinimg.com/736x/2d/76/5f/2d765f57bf4e726d5bf4926fc19ec41e.jpg" alt="Success">
             </div>
 
-            <h2 class="highlight-text reveal" style="margin-top: 40px;">إذا كنت تبحث عن شريك تقني يملك الدقة، السرعة، السعر المنافس، والإبداع البصري، فقد وجدته.</h2>
+            <h2 class="highlight-text reveal" style="margin-top: 40px;">انطلق نحو النجاح مع EUX اليوم.</h2>
             
-            <p class="reveal" style="font-size: 1.5rem; color: var(--primary); font-weight: 800;">تواصل معنا اليوم؛ لنصنع معاً هويتك الرقمية.</p>
-
             <div class="reveal" style="margin-top: 40px;">
                 <button class="btn-neon" onclick="toggleModal(true)">ابدأ مشروعك الآن</button>
-            </div>
-
-            <div class="social-dock reveal">
-                <a href="https://wa.me/201155590191" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA"></a>
-                <a href="https://instagram.com/tenvora.dev" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="IG"></a>
-                <a href="https://www.facebook.com/share/18KBnYSSDu/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB"></a>
             </div>
         </section>
     </main>
 
     <div class="modal" id="modal">
         <div class="modal-box">
-            <h2 style="text-align: center; color: var(--primary); margin-bottom: 25px; text-shadow: 0 0 10px var(--primary-glow);">نحن بانتظار فكرتك</h2>
+            <h2 style="text-align: center; color: var(--primary); margin-bottom: 25px;">تواصل مع EUX</h2>
             <input type="text" id="name" placeholder="الاسم الكامل">
             <input type="tel" id="phone" placeholder="رقم الواتساب">
-            <textarea id="desc" rows="4" placeholder="أخبرنا قليلاً عن مشروعك القادم..."></textarea>
+            <textarea id="desc" rows="4" placeholder="أخبرنا عن فكرتك..."></textarea>
             <button class="btn-neon" style="width: 100%;" onclick="sendData()">إرسال الطلب</button>
-            <button onclick="toggleModal(false)" style="display: block; width: 100%; background: none; border: none; color: #555; margin-top: 20px; cursor: pointer;">إغلاق</button>
+            <button onclick="toggleModal(false)" style="display: block; width: 100%; background: none; border: none; color: #888; margin-top: 20px; cursor: pointer;">إغلاق</button>
         </div>
     </div>
 
     <script>
-        // Loader
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const l = document.getElementById('loader');
@@ -247,27 +202,24 @@
             }, 2500);
         });
 
-        // Scroll Reveal
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); });
         }, { threshold: 0.1 });
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-        // Modal
         function toggleModal(s) {
             const m = document.getElementById('modal');
             s ? m.classList.add('open') : m.classList.remove('open');
             document.body.style.overflow = s ? 'hidden' : 'auto';
         }
 
-        // WhatsApp Sender
         function sendData() {
             const n = document.getElementById('name').value;
             const p = document.getElementById('phone').value;
             const d = document.getElementById('desc').value;
             if(!n || !p) return alert("فضلاً، أدخل البيانات المطلوبة");
             
-            const msg = `طلب استشارة جديدة من الموقع:\n👤 الاسم: ${n}\n📞 الهاتف: ${p}\n📝 التفاصيل: ${d}`;
+            const msg = `طلب استشارة من موقع EUX:\n👤 الاسم: ${n}\n📞 الهاتف: ${p}\n📝 التفاصيل: ${d}`;
             window.open(`https://wa.me/201155590191?text=${encodeURIComponent(msg)}`);
         }
     </script>
