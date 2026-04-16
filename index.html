@@ -9,7 +9,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
             authDomain: "gooo-a453b.firebaseapp.com",
@@ -26,33 +25,20 @@
 
         let currentMerchantCode = localStorage.getItem('EUX_Saved_Code') || "";
 
-        // دالة إظهار نافذة تسجيل الدخول
-        window.showLoginModal = function() {
-            document.getElementById('loginModal').style.display = 'flex';
-        };
+        window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
+        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
-        // دالة إغلاق النافذة
-        window.closeLoginModal = function() {
-            document.getElementById('loginModal').style.display = 'none';
-        };
-
-        // التحقق من الكود المحسن
         window.checkMerchantCode = function() {
             const code = document.getElementById('merchantCodeInput').value;
             const allowedCodes = ["55555", "11111"];
             if (allowedCodes.includes(code)) { 
                 currentMerchantCode = code;
                 localStorage.setItem('EUX_Saved_Code', code);
-                closeLoginModal();
+                closeModal('loginModal');
                 goTo('merchantPage'); 
             } else { 
-                alert("الكود غير صحيح!"); 
+                alert("الكود غير صحيح!");
             }
-        };
-
-        window.logout = function() {
-            localStorage.removeItem('EUX_Saved_Code');
-            location.reload();
         };
 
         window.confirmOrder = async function() {
@@ -74,25 +60,16 @@
                     status: "waiting",
                     createdAt: new Date()
                 });
-                alert("✅ تم نشر الطلب بنجاح");
                 resetForm();
-            } catch (e) { alert("خطأ في الاتصال"); }
-        };
-
-        window.acceptOrder = async function(orderId) {
-            await updateDoc(doc(db, "orders", orderId), { status: "delivering" });
-        };
-
-        window.finishOrder = async function(orderId) {
-            if(confirm("هل تم تسليم الطلب؟")) {
-                await deleteDoc(doc(db, "orders", orderId));
+                showModal('statusModal'); // إظهار النافذة المنبثقة عند النجاح
+            } catch (e) { 
+                alert("خطأ في الاتصال");
             }
         };
 
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const deliveryList = document.getElementById('ordersList');
             const merchantList = document.getElementById('merchantOrdersMonitor');
-            
             deliveryList.innerHTML = "";
             merchantList.innerHTML = "";
 
@@ -102,7 +79,7 @@
                 
                 let deliveryBtn = order.status === "waiting" ? 
                     `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>` :
-                    `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل (إنهاء)</button>`;
+                    `<button class="btn btn-finish" onclick="finishOrder('${id}')">إنهاء الطلب</button>`;
                 
                 deliveryList.innerHTML += `
                     <div class="order-card">
@@ -126,69 +103,49 @@
                     `;
                 }
             });
-            if (merchantList.innerHTML === "") merchantList.innerHTML = "لا توجد طلبات جارية حالياً";
+            if (merchantList.innerHTML === "") merchantList.innerHTML = "لا توجد طلبات جارية";
         });
 
-        window.onload = function() {
-            if (currentMerchantCode) {
-                goTo('merchantPage');
-            }
-        };
+        window.logout = function() { localStorage.removeItem('EUX_Saved_Code'); location.reload(); };
+        window.acceptOrder = async function(id) { await updateDoc(doc(db, "orders", id), { status: "delivering" }); };
+        window.finishOrder = async function(id) { if(confirm("هل تم التسليم؟")) await deleteDoc(doc(db, "orders", id)); };
+
+        window.onload = function() { if (currentMerchantCode) goTo('merchantPage'); };
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; direction: rtl; }
-        .screen { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; flex-direction: column; align-items: center; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f9; margin: 0; direction: rtl; }
+        .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; }
         .active { display: flex; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; }
-        input:focus { border-color: #1a73e8; background: #fff; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #1a73e8; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
-        .btn:active { transform: scale(0.98); }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         .btn-confirm { background: #fb8c00; color: white; }
-        .btn-accept { background: #1a73e8; color: white; }
-        .btn-finish { background: #d32f2f; color: white; }
         
-        /* تصميم نافذة تسجيل الدخول الجديدة */
         .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 2000;
+            justify-content: center; align-items: center;
         }
         .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 350px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            text-align: center;
-            position: relative;
+            background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15); text-align: center; animation: slideUp 0.3s ease;
         }
-        .merchant-input-style {
-            text-align: center;
-            letter-spacing: 5px;
-            font-size: 24px;
-            font-weight: bold;
-            border: 2px solid #1a73e8;
-            margin: 20px 0;
-        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 12px; border-right: 6px solid #1a73e8; width: 100%; text-align: right; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; text-align: right; border: 1px solid #e0e0e0; }
-        .monitor-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .merchant-input-style { text-align: center; letter-spacing: 4px; font-size: 22px; border: 2px solid #1a73e8; margin: 15px 0; }
+
+        .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 15px; border-right: 6px solid #1a73e8; box-shadow: 0 4px 12px rgba(0,0,0,0.03); width: 100%; text-align: right; }
+        .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; }
+        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; }
         .badge-waiting { background: #fff3cd; color: #856404; }
         .badge-delivering { background: #d1ecf1; color: #0c5460; }
-        .back { margin-top: 25px; color: #666; cursor: pointer; text-decoration: underline; }
+        .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -196,16 +153,22 @@
     <div id="entryPage" class="screen active" style="justify-content: center;">
         <div class="card">
             <h1>EUX</h1>
-            <button class="btn btn-main" onclick="showLoginModal()">🏬 دخول لوحة التجار</button>
+            <button class="btn btn-main" onclick="showModal('loginModal')">🏬 دخول لوحة التجار</button>
             <button class="btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ دخول لوحة المناديب</button>
         </div>
     </div>
 
-    <div id="loginModal" class="modal-overlay" onclick="if(event.target == this) closeLoginModal()">
+    <div id="loginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('loginModal')">
         <div class="modal-content">
             <input type="password" id="merchantCodeInput" class="merchant-input-style" placeholder="•••••">
             <button class="btn btn-main" onclick="checkMerchantCode()">تسجيل الدخول</button>
-            <div class="back" onclick="closeLoginModal()">إلغاء</div>
+            <div class="back" onclick="closeModal('loginModal')">إلغاء</div>
+        </div>
+    </div>
+
+    <div id="statusModal" class="modal-overlay" onclick="closeModal('statusModal')">
+        <div class="modal-content">
+            <button class="btn btn-main" onclick="closeModal('statusModal')" style="margin-top: 0;">تم تأكيد الطلب</button>
         </div>
     </div>
 
@@ -215,7 +178,7 @@
             <input type="text" id="shopNumber" placeholder="رقم المحل">
             <input type="text" id="shopLocation" placeholder="موقع المحل (رابط)">
             <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
-            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
+            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
             <div class="back" onclick="logout()">تسجيل الخروج</div>
         </div>
         <div class="monitor-card">
@@ -226,7 +189,7 @@
 
     <div id="deliveryPage" class="screen">
         <div style="width: 100%; max-width: 500px;">
-            <h2 style="text-align: center;">لوحة المناديب</h2>
+            <h2 style="text-align: center;">الطلبات المتاحة</h2>
             <div id="ordersList"></div>
             <div class="back" style="text-align: center; display: block;" onclick="goTo('entryPage')">العودة للرئيسية</div>
         </div>
