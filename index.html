@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام EUX المتكامل</title>
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -25,6 +28,7 @@
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
+        let map, marker; // متغيرات الخريطة
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
@@ -51,7 +55,10 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
-            if(role === 'merchant') loadSavedData();
+            if(role === 'merchant') {
+                loadSavedData();
+                initInteractiveMap();
+            }
         }
 
         window.logout = function() {
@@ -66,20 +73,39 @@
             }
         };
 
-        // وظيفة تتيح للتاجر اختيار أي مكان على الخريطة بحرية
-        window.pickLocationOnMap = function() {
-            // تفتح خرائط جوجل في نافذة جديدة ليتمكن التاجر من البحث واختيار الموقع ثم نسخ الرابط
-            const mapUrl = "https://www.google.com/maps";
-            window.open(mapUrl, '_blank');
-            alert("من فضلك اختر موقعك على الخريطة، ثم انسخ رابط الموقع (URL) وضعه في خانة موقع المحل.");
-        };
+        // نظام تحديد المواقع التفاعلي (Uber Style)
+        function initInteractiveMap() {
+            setTimeout(() => {
+                if (map) return;
+                map = L.map('map').setView([30.0444, 31.2357], 13); // البداية من القاهرة كمثال
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+                marker = L.marker([30.0444, 31.2357], {draggable: true}).addTo(map);
+
+                marker.on('dragend', function (e) {
+                    const lat = marker.getLatLng().lat;
+                    const lng = marker.getLatLng().lng;
+                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+                    document.getElementById('shopLocation').value = url;
+                    localStorage.setItem('EUX_Shop_Loc', url);
+                });
+
+                map.locate({setView: true, maxZoom: 16});
+                map.on('locationfound', (e) => {
+                    marker.setLatLng(e.latlng);
+                    const url = `https://www.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}`;
+                    document.getElementById('shopLocation').value = url;
+                    localStorage.setItem('EUX_Shop_Loc', url);
+                });
+            }, 500);
+        }
 
         window.addAddressField = function() {
             const container = document.getElementById('addressContainer');
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'delivery-address';
-            input.placeholder = 'عنوان زبون أو رابط موقعه';
+            input.placeholder = 'عنوان الزبون أو رابط موقعه';
             container.appendChild(input);
         };
 
@@ -138,39 +164,31 @@
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
-                
-                const addrHTML = order.addresses.map(a => {
-                    if(a.startsWith('http')) return `• <a href="${a}" target="_blank" class="map-link">📍 موقع الزبون على الخريطة</a>`;
-                    return `• ${a}`;
-                }).join('<br>');
+                const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank" class="map-link">📍 موقع الزبون</a>` : `• ${a}`).join('<br>');
 
                 if(dList) {
                     const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل (انطلاق)</a>`;
-                    
                     if (order.status === "waiting") {
                         dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
                     } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
                         dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
-
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
                     mList.innerHTML += `<div class="monitor-item"><div><strong>هاتف ${order.shopNum}</strong><br><small style="color:#777">${dateStr}</small></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
-
                 if(aList && order.status !== "completed") {
-                    aList.innerHTML += `<div class="monitor-item admin-card"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong><br><small>📅 التاريخ: ${dateStr}</small><br><small>🔑 تاجر: ${order.merchantCode}</small><br><small>🆔 مندوب: ${order.deliveryCode || "لم يقبل بعد"}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'قيد الانتظار' : 'جاري التوصيل'}</span></div>`;
+                    aList.innerHTML += `<div class="monitor-item admin-card"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
                 }
-
                 if(aArchive && order.status === "completed") {
-                    aArchive.innerHTML += `<div class="monitor-item admin-card" style="border-right: 5px solid #28a745;"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong> (مكتمل)<br><small>📅 التاريخ: ${dateStr}</small><br><small>🔑 تاجر: ${order.merchantCode} | 🆔 مندوب: ${order.deliveryCode}</small></div></div>`;
+                    aArchive.innerHTML += `<div class="monitor-item admin-card" style="border-right: 5px solid #28a745;"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong> (مكتمل)</div></div>`;
                 }
             });
         });
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
-            else if (userRole === 'merchant') { goTo('merchantPage'); loadSavedData(); }
+            else if (userRole === 'merchant') { goTo('merchantPage'); loadSavedData(); initInteractiveMap(); }
             else if (userRole === 'delivery') goTo('deliveryPage');
         };
     </script>
@@ -179,7 +197,7 @@
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f9; margin: 0; direction: rtl; }
         .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; }
         .active { display: flex; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
         input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
@@ -188,10 +206,10 @@
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-archive { background: #6c757d; color: white; margin-bottom: 10px; }
         .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
-        .btn-gps { background: #4285f4; color: white; font-size: 13px; padding: 8px; margin-bottom: 5px;}
         
+        /* تصميم الخريطة التفاعلية */
+        #map { height: 250px; width: 100%; border-radius: 15px; margin: 10px 0; border: 1px solid #ddd; z-index: 1; }
         .btn-gps-link { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 5px 0; font-size: 14px; border: 1px solid #1a73e8; }
         .map-link { color: #34a853; font-weight: bold; text-decoration: underline; }
 
@@ -201,8 +219,8 @@
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
         .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
         .admin-card { background: #fdfdfd; border-radius: 10px; margin-bottom: 5px; padding: 10px; border: 1px solid #eee; }
-        .badge.waiting { background: #fff3cd; color: #856404; }
-        .badge.delivering { background: #d1ecf1; color: #0c5460; }
+        .badge.waiting { background: #fff3cd; color: #856404; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .badge.delivering { background: #d1ecf1; color: #0c5460; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
         .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
     </style>
 </head>
@@ -238,32 +256,18 @@
         </div>
     </div>
 
-    <div id="adminPage" class="screen">
-        <div class="card">
-            <h2>🎛️ لوحة التحكم العامة</h2>
-            <button class="btn btn-archive" onclick="toggleArchive()">📁 سجل الطلبات المكتملة</button>
-            <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
-        </div>
-        <div id="adminArchive" class="monitor-card" style="display: none; background: #e9ecef; border: 2px solid #28a745;">
-            <h3 style="color: #28a745;">✅ الطلبات المكتملة</h3>
-            <div id="adminArchiveList">لا توجد طلبات مكتملة بعد</div>
-        </div>
-        <div class="monitor-card">
-            <h3>📈 الطلبات الجارية الآن</h3>
-            <div id="adminOrdersMonitor">جاري تحميل البيانات...</div>
-        </div>
-    </div>
-
     <div id="merchantPage" class="screen">
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
             <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل">
-            <input type="text" id="shopLocation" placeholder="ضع رابط الموقع المختار هنا">
-            <button class="btn btn-gps" onclick="pickLocationOnMap()">🗺️ فتح الخريطة لاختيار موقع المحل</button>
+            <p style="font-size: 12px; color: #1a73e8;">حدد موقعك بدقة بسحب الدبوس على الخريطة:</p>
+            <div id="map"></div>
+            <input type="text" id="shopLocation" placeholder="رابط الموقع (يتم تحديثه تلقائياً)" readonly>
+            
             <div id="addressContainer" style="width: 100%;">
                 <input type="text" class="delivery-address" placeholder="عنوان الزبون (أو رابط موقعه)">
             </div>
-            <button class="btn btn-add" onclick="addAddressField()">➕ إضافة وجهة أخرى لنفس الطلب</button>
+            <button class="btn btn-add" onclick="addAddressField()">➕ وجهة أخرى لنفس الطلب</button>
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
             <div class="back" onclick="logout()">تسجيل الخروج</div>
         </div>
@@ -276,6 +280,22 @@
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
         </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
+    </div>
+
+    <div id="adminPage" class="screen">
+        <div class="card">
+            <h2>🎛️ لوحة التحكم العامة</h2>
+            <button class="btn btn-archive" onclick="toggleArchive()">📁 سجل الطلبات المكتملة</button>
+            <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
+        </div>
+        <div id="adminArchive" class="monitor-card" style="display: none; background: #e9ecef; border: 2px solid #28a745;">
+            <h3 style="color: #28a745;">✅ المكتملة</h3>
+            <div id="adminArchiveList"></div>
+        </div>
+        <div class="monitor-card">
+            <h3>📈 الجارية الآن</h3>
+            <div id="adminOrdersMonitor"></div>
+        </div>
     </div>
 
     <script>
