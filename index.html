@@ -24,26 +24,22 @@
         const ordersCol = collection(db, "orders");
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
-        let userRole = localStorage.getItem('EUX_Role') || ""; // merchant, delivery, admin
+        let userRole = localStorage.getItem('EUX_Role') || "";
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
-        // نظام تسجيل الدخول الموحد
         window.loginProcess = function(type) {
             const inputId = type === 'merchant' ? 'merchantCodeInput' : 'deliveryCodeInput';
             const code = document.getElementById(inputId).value;
             
             if (type === 'merchant') {
-                if (code === "011483") {
-                    setSession(code, 'admin', 'adminPage');
-                } else if (["55555", "11111"].includes(code)) {
-                    setSession(code, 'merchant', 'merchantPage');
-                } else { alert("كود التاجر خطأ!"); }
+                if (code === "011483") setSession(code, 'admin', 'adminPage');
+                else if (["55555", "11111"].includes(code)) setSession(code, 'merchant', 'merchantPage');
+                else alert("كود التاجر خطأ!");
             } else {
-                if (["5555", "1111"].includes(code)) {
-                    setSession(code, 'delivery', 'deliveryPage');
-                } else { alert("كود المندوب خطأ!"); }
+                if (["5555", "1111"].includes(code)) setSession(code, 'delivery', 'deliveryPage');
+                else alert("كود المندوب خطأ!");
             }
         };
 
@@ -62,12 +58,10 @@
             location.reload();
         };
 
-        // إرسال الطلب مع حفظ كود التاجر
         window.confirmOrder = async function() {
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
-
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
 
             try {
@@ -85,44 +79,53 @@
         window.acceptOrder = async function(id) {
             await updateDoc(doc(db, "orders", id), { 
                 status: "delivering",
-                deliveryCode: currentUserCode // تسجيل من قبل الطلب
+                deliveryCode: currentUserCode 
             });
         };
 
+        // تم تعديل الدالة لتقوم بتغيير الحالة بدلاً من الحذف
         window.finishOrder = async function(id) {
-            if(confirm("تم التسليم؟")) await deleteDoc(doc(db, "orders", id));
+            if(confirm("تم التسليم؟")) {
+                await updateDoc(doc(db, "orders", id), { status: "completed" });
+            }
         };
 
-        // تحديث البيانات اللحظي لجميع الشاشات
+        window.toggleArchive = function() {
+            const archive = document.getElementById('adminArchive');
+            archive.style.display = archive.style.display === 'none' ? 'block' : 'none';
+        };
+
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const dList = document.getElementById('ordersList');
             const mList = document.getElementById('merchantOrdersMonitor');
             const aList = document.getElementById('adminOrdersMonitor');
+            const aArchive = document.getElementById('adminArchiveList');
             
             if(dList) dList.innerHTML = "";
             if(mList) mList.innerHTML = "";
             if(aList) aList.innerHTML = "";
+            if(aArchive) aArchive.innerHTML = "";
 
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
                 
-                // عرض المناديب
+                // لوحة المناديب: تظهر الطلبات المنتظرة أو التي في حوزة المندوب فقط
                 if(dList) {
-                    let dBtn = order.status === "waiting" ? 
-                        `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>` :
-                        (order.deliveryCode === currentUserCode ? `<button class="btn btn-finish" onclick="finishOrder('${id}')">إنهاء الطلب</button>` : `<span>بانتظار مندوب آخر</span>`);
-                    
-                    dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p>${dBtn}</div>`;
+                    if (order.status === "waiting") {
+                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                    } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
+                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                    }
                 }
 
-                // عرض التاجر
-                if(mList && order.merchantCode === currentUserCode) {
+                // لوحة التاجر: تظهر طلباته الجارية فقط (تختفي عند اكتمالها)
+                if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
                     mList.innerHTML += `<div class="monitor-item"><div><strong>محل ${order.shopNum}</strong></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
 
-                // عرض الإدارة (التحكم الكامل)
-                if(aList) {
+                // لوحة التحكم (الأدمن): الطلبات الجارية
+                if(aList && order.status !== "completed") {
                     aList.innerHTML += `
                         <div class="monitor-item admin-card">
                             <div style="text-align:right">
@@ -131,6 +134,17 @@
                                 <small>🆔 مندوب: ${order.deliveryCode || "لم يقبل بعد"}</small>
                             </div>
                             <span class="badge ${order.status}">${order.status === 'waiting' ? 'قيد الانتظار' : 'جاري التوصيل'}</span>
+                        </div>`;
+                }
+
+                // لوحة التحكم (الأدمن): أرشيف الطلبات المكتملة
+                if(aArchive && order.status === "completed") {
+                    aArchive.innerHTML += `
+                        <div class="monitor-item admin-card" style="border-right: 5px solid #28a745;">
+                            <div style="text-align:right">
+                                <strong>📦 محل: ${order.shopNum}</strong> (مكتمل)<br>
+                                <small>🔑 تاجر: ${order.merchantCode} | 🆔 مندوب: ${order.deliveryCode}</small>
+                            </div>
                         </div>`;
                 }
             });
@@ -154,6 +168,10 @@
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         .btn-confirm { background: #fb8c00; color: white; }
+        .btn-accept-green { background: #28a745; color: white; }
+        .btn-finish-red { background: #dc3545; color: white; }
+        .btn-archive { background: #6c757d; color: white; margin-bottom: 10px; }
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
         .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 15px; border-right: 6px solid #1a73e8; box-shadow: 0 4px 12px rgba(0,0,0,0.03); width: 100%; text-align: right; }
@@ -200,11 +218,17 @@
     <div id="adminPage" class="screen">
         <div class="card">
             <h2>🎛️ لوحة التحكم العامة</h2>
-            <p>مرحباً بك في صفحة مدير النظام</p>
+            <button class="btn btn-archive" onclick="toggleArchive()">📁 سجل الطلبات المكتملة</button>
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
         </div>
+        
+        <div id="adminArchive" class="monitor-card" style="display: none; background: #e9ecef; border: 2px solid #28a745;">
+            <h3 style="color: #28a745;">✅ الطلبات المكتملة</h3>
+            <div id="adminArchiveList">لا توجد طلبات مكتملة بعد</div>
+        </div>
+
         <div class="monitor-card">
-            <h3>📈 تتبع كافة الطلبات</h3>
+            <h3>📈 الطلبات الجارية الآن</h3>
             <div id="adminOrdersMonitor">جاري تحميل البيانات...</div>
         </div>
     </div>
@@ -224,7 +248,6 @@
     <div id="deliveryPage" class="screen">
         <div class="card">
             <h2>لوحة المناديب</h2>
-            <p>كود المندوب الحالي: <span id="displayDeliveryCode"></span></p>
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
         </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
@@ -234,7 +257,6 @@
         function goTo(pageId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
-            if(pageId === 'deliveryPage') document.getElementById('displayDeliveryCode').innerText = localStorage.getItem('EUX_User_Code');
         }
         function resetForm() {
             document.getElementById('shopNumber').value = '';
