@@ -51,6 +51,7 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
+            if(role === 'merchant') loadSavedData();
         }
 
         window.logout = function() {
@@ -58,11 +59,43 @@
             location.reload();
         };
 
+        // وظائف التاجر الجديدة (التثبيت وتعدد العناوين)
+        window.loadSavedData = function() {
+            if(document.getElementById('shopNumber')) {
+                document.getElementById('shopNumber').value = localStorage.getItem('EUX_Shop_Num') || "";
+                document.getElementById('shopLocation').value = localStorage.getItem('EUX_Shop_Loc') || "";
+            }
+        };
+
+        window.getCurrentLocation = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    document.getElementById('shopLocation').value = link;
+                    localStorage.setItem('EUX_Shop_Loc', link);
+                }, () => alert("فشل تحديد الموقع"));
+            }
+        };
+
+        window.addAddressField = function() {
+            const container = document.getElementById('addressContainer');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'delivery-address';
+            input.placeholder = 'عنوان زبون إضافي';
+            container.appendChild(input);
+        };
+
         window.confirmOrder = async function() {
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
+            
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
+
+            // حفظ البيانات للطلبات القادمة
+            localStorage.setItem('EUX_Shop_Num', shopNum);
+            localStorage.setItem('EUX_Shop_Loc', shopLoc);
 
             try {
                 await addDoc(ordersCol, {
@@ -109,24 +142,25 @@
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
-                
+                const addrHTML = order.addresses.map(a => `• ${a}`).join('<br>');
+
                 if(dList) {
                     if (order.status === "waiting") {
-                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><small>📅 ${dateStr}</small><br><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
                     } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
-                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><small>📅 ${dateStr}</small><br><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
 
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
-                    mList.innerHTML += `<div class="monitor-item"><div><strong>محل ${order.shopNum}</strong><br><small style="color:#777">${dateStr}</small></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
+                    mList.innerHTML += `<div class="monitor-item"><div><strong>هاتف ${order.shopNum}</strong><br><small style="color:#777">${dateStr}</small></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
 
                 if(aList && order.status !== "completed") {
                     aList.innerHTML += `
                         <div class="monitor-item admin-card">
                             <div style="text-align:right">
-                                <strong>📦 محل: ${order.shopNum}</strong><br>
+                                <strong>📞 هاتف: ${order.shopNum}</strong><br>
                                 <small>📅 التاريخ: ${dateStr}</small><br>
                                 <small>🔑 تاجر: ${order.merchantCode}</small><br>
                                 <small>🆔 مندوب: ${order.deliveryCode || "لم يقبل بعد"}</small>
@@ -139,7 +173,7 @@
                     aArchive.innerHTML += `
                         <div class="monitor-item admin-card" style="border-right: 5px solid #28a745;">
                             <div style="text-align:right">
-                                <strong>📦 محل: ${order.shopNum}</strong> (مكتمل)<br>
+                                <strong>📞 هاتف: ${order.shopNum}</strong> (مكتمل)<br>
                                 <small>📅 التاريخ: ${dateStr}</small><br>
                                 <small>🔑 تاجر: ${order.merchantCode} | 🆔 مندوب: ${order.deliveryCode}</small>
                             </div>
@@ -150,7 +184,7 @@
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
-            else if (userRole === 'merchant') goTo('merchantPage');
+            else if (userRole === 'merchant') { goTo('merchantPage'); loadSavedData(); }
             else if (userRole === 'delivery') goTo('deliveryPage');
         };
     </script>
@@ -161,7 +195,7 @@
         .active { display: flex; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
@@ -169,6 +203,8 @@
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
         .btn-archive { background: #6c757d; color: white; margin-bottom: 10px; }
+        .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
+        .btn-gps { background: #4285f4; color: white; font-size: 13px; padding: 8px; margin-bottom: 5px;}
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
@@ -234,9 +270,15 @@
     <div id="merchantPage" class="screen">
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
-            <input type="text" id="shopNumber" placeholder="رقم المحل">
-            <input type="text" id="shopLocation" placeholder="موقع المحل (رابط)">
-            <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
+            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل">
+            <input type="text" id="shopLocation" placeholder="موقع المحل (رابط جوجل)">
+            <button class="btn btn-gps" onclick="getCurrentLocation()">📍 تحديد موقعي الحالي على جوجل</button>
+            
+            <div id="addressContainer" style="width: 100%;">
+                <input type="text" class="delivery-address" placeholder="عنوان الزبون (1)">
+            </div>
+            <button class="btn btn-add" onclick="addAddressField()">➕ إضافة زبون آخر لنفس الطلب</button>
+            
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
             <div class="back" onclick="logout()">تسجيل الخروج</div>
         </div>
@@ -257,9 +299,8 @@
             document.getElementById(pageId).classList.add('active');
         }
         function resetForm() {
-            document.getElementById('shopNumber').value = '';
-            document.getElementById('shopLocation').value = '';
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
+            // لا نمسح رقم المحل وموقعه لضمان الثبات
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون (1)">';
         }
     </script>
 </body>
