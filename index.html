@@ -83,7 +83,6 @@
             });
         };
 
-        // تم تعديل الدالة لتقوم بتغيير الحالة بدلاً من الحذف
         window.finishOrder = async function(id) {
             if(confirm("تم التسليم؟")) {
                 await updateDoc(doc(db, "orders", id), { status: "completed" });
@@ -109,27 +108,26 @@
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
+                const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 
-                // لوحة المناديب: تظهر الطلبات المنتظرة أو التي في حوزة المندوب فقط
                 if(dList) {
                     if (order.status === "waiting") {
-                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><small>📅 ${dateStr}</small><br><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
                     } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
-                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📦 محل: ${order.shopNum}</strong><p>🏠 الوجهة: ${order.addresses[0]}</p><small>📅 ${dateStr}</small><br><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
 
-                // لوحة التاجر: تظهر طلباته الجارية فقط (تختفي عند اكتمالها)
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
-                    mList.innerHTML += `<div class="monitor-item"><div><strong>محل ${order.shopNum}</strong></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
+                    mList.innerHTML += `<div class="monitor-item"><div><strong>محل ${order.shopNum}</strong><br><small style="color:#777">${dateStr}</small></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
 
-                // لوحة التحكم (الأدمن): الطلبات الجارية
                 if(aList && order.status !== "completed") {
                     aList.innerHTML += `
                         <div class="monitor-item admin-card">
                             <div style="text-align:right">
                                 <strong>📦 محل: ${order.shopNum}</strong><br>
+                                <small>📅 التاريخ: ${dateStr}</small><br>
                                 <small>🔑 تاجر: ${order.merchantCode}</small><br>
                                 <small>🆔 مندوب: ${order.deliveryCode || "لم يقبل بعد"}</small>
                             </div>
@@ -137,12 +135,12 @@
                         </div>`;
                 }
 
-                // لوحة التحكم (الأدمن): أرشيف الطلبات المكتملة
                 if(aArchive && order.status === "completed") {
                     aArchive.innerHTML += `
                         <div class="monitor-item admin-card" style="border-right: 5px solid #28a745;">
                             <div style="text-align:right">
                                 <strong>📦 محل: ${order.shopNum}</strong> (مكتمل)<br>
+                                <small>📅 التاريخ: ${dateStr}</small><br>
                                 <small>🔑 تاجر: ${order.merchantCode} | 🆔 مندوب: ${order.deliveryCode}</small>
                             </div>
                         </div>`;
@@ -188,8 +186,8 @@
     <div id="entryPage" class="screen active" style="justify-content: center;">
         <div class="card">
             <h1>EUX</h1>
-            <button class="btn btn-main" onclick="showModal('loginModal')">🏬 دخول لوحة التجار</button>
-            <button class="btn btn-delivery" onclick="showModal('deliveryLoginModal')">🏍️ دخول لوحة المناديب</button>
+            <button class="btn btn-main" onclick="showModal('loginModal')">🏬 محل التاجر</button>
+            <button class="btn btn-delivery" onclick="showModal('deliveryLoginModal')">🏍️ انا المندوب</button>
         </div>
     </div>
 
