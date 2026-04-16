@@ -69,3 +69,68 @@
     </script>
 </body>
 </html>
+
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>محل التاجل - تسجيل الطلب</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; padding: 50px; }
+        .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
+        input { display: block; width: 250px; margin: 10px auto; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; background-color: #28a745; color: white; font-size: 16px; }
+        .hidden { display: none; }
+        .nav-btn { background-color: #007bff; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <button class="nav-btn" id="toggleBtn">محل التاجل</button>
+
+    <div id="formSection" class="hidden">
+        <div class="container">
+            <h3>استمارة تسجيل الطلب</h3>
+            <input type="text" id="pickup" placeholder="عنوان الاستلام">
+            <input type="text" id="delivery" placeholder="عناوين التسليم">
+            <button id="sendBtn">ارسال الطلب 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        const toggleBtn = document.getElementById('toggleBtn');
+        const formSection = document.getElementById('formSection');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // إظهار الاستمارة عند الضغط على الزر
+        toggleBtn.onclick = () => formSection.classList.toggle('hidden');
+
+        // إرسال البيانات
+        sendBtn.onclick = () => {
+            const pickupValue = document.getElementById('pickup').value;
+            const deliveryValue = document.getElementById('delivery').value;
+
+            if(pickupValue && deliveryValue) {
+                const order = {
+                    id: Date.now(),
+                    pickup: pickupValue,
+                    delivery: deliveryValue,
+                    status: 'قيد الانتظار'
+                };
+
+                // حفظ في localStorage
+                let orders = JSON.parse(localStorage.getItem('orders')) || [];
+                orders.push(order);
+                localStorage.setItem('orders', JSON.stringify(orders));
+
+                alert('تم إرسال الطلب بنجاح!');
+                window.location.href = 'page2.html'; // الانتقال لصفحة الأوردرات
+            } else {
+                alert('يرجى ملء كافة الخانات');
+            }
+        };
+    </script>
+</body>
+</html>
