@@ -62,13 +62,11 @@
         }
 
         window.logout = function() {
-            // نمسح الجلسة الحالية فقط ولا نمسح البيانات المحفوظة (رقم الهاتف والموقع)
             localStorage.removeItem('EUX_User_Code');
             localStorage.removeItem('EUX_Role');
             location.reload();
         };
 
-        // حفظ وتحميل البيانات المرتبطة بكود التاجر
         window.loadPersistentData = function(code) {
             const savedPhone = localStorage.getItem(`EUX_Phone_${code}`);
             const savedLoc = localStorage.getItem(`EUX_Loc_${code}`);
@@ -92,12 +90,15 @@
             setTimeout(() => {
                 if (map) return;
                 
-                // استرجاع الإحداثيات القديمة إذا وجدت أو البدء من الافتراضي
                 let startCoords = [30.0444, 31.2357];
                 const savedLoc = localStorage.getItem(`EUX_Loc_${currentUserCode}`);
-                if(savedLoc && savedLoc.includes(',')) {
-                    const parts = savedLoc.split('0')[1].split(',');
-                    startCoords = [parseFloat(parts[0]), parseFloat(parts[1])];
+                
+                // محاولة استخراج الإحداثيات من الرابط المحفوظ إذا وجد
+                if(savedLoc && savedLoc.includes('google.com/')) {
+                    try {
+                        const coordsPart = savedLoc.split('google.com/')[1].split(',');
+                        startCoords = [parseFloat(coordsPart[0]), parseFloat(parts[1])];
+                    } catch(e) {}
                 }
 
                 map = L.map('map').setView(startCoords, 13);
@@ -108,16 +109,17 @@
                 marker.on('dragend', function (e) {
                     const lat = marker.getLatLng().lat;
                     const lng = marker.getLatLng().lng;
-                    const url = `https://www.google.com/maps?q=$${lat},${lng}`;
+                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
                     document.getElementById('shopLocation').value = url;
-                    savePersistentData(); // حفظ تلقائي عند تغيير الموقع
+                    savePersistentData();
                 });
 
+                // إذا لم يكن هناك موقع محفوظ، حاول العثور على موقع المستخدم الحالي
                 if(!savedLoc) {
                     map.locate({setView: true, maxZoom: 16});
                     map.on('locationfound', (e) => {
                         marker.setLatLng(e.latlng);
-                        const url = `https://www.google.com/maps?q=$${e.latlng.lat},${e.latlng.lng}`;
+                        const url = `https://www.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}`;
                         document.getElementById('shopLocation').value = url;
                         savePersistentData();
                     });
@@ -130,7 +132,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'delivery-address';
-            input.placeholder = 'عنوان الزبون أو رابط موقعه';
+            input.placeholder = 'عنوان الزبون الجديد أو رابط موقعه';
             container.appendChild(input);
         };
 
@@ -141,7 +143,6 @@
             
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
 
-            // تأكيد الحفظ النهائي للبيانات المرتبطة بالكود
             savePersistentData();
 
             try {
@@ -178,18 +179,16 @@
             const dList = document.getElementById('ordersList');
             const mList = document.getElementById('merchantOrdersMonitor');
             const aList = document.getElementById('adminOrdersMonitor');
-            const aArchive = document.getElementById('adminArchiveList');
             
             if(dList) dList.innerHTML = "";
             if(mList) mList.innerHTML = "";
             if(aList) aList.innerHTML = "";
-            if(aArchive) aArchive.innerHTML = "";
 
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
-                const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank" class="map-link">📍 موقع الزبون</a>` : `• ${a}`).join('<br>');
+                const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank" class="map-link">📍 رابط الخريطة</a>` : `• ${a}`).join('<br>');
 
                 if(dList) {
                     const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل (انطلاق)</a>`;
@@ -281,12 +280,12 @@
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
             <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل" onchange="savePersistentData()">
-            <p style="font-size: 12px; color: #1a73e8;">موقعك المحفوظ (اسحب الدبوس للتعديل):</p>
+            <p style="font-size: 12px; color: #1a73e8;">اسحب الدبوس لتحديد الموقع أو الصق رابطاً يدوياً بالأسفل:</p>
             <div id="map"></div>
-            <input type="text" id="shopLocation" placeholder="رابط الموقع" readonly>
+            <input type="text" id="shopLocation" placeholder="رابط الموقع" onchange="savePersistentData()">
             
             <div id="addressContainer" style="width: 100%;">
-                <input type="text" class="delivery-address" placeholder="عنوان الزبون أو رابط موقعه">
+                <input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">
             </div>
             <button class="btn btn-add" onclick="addAddressField()">➕ وجهة أخرى لنفس الطلب</button>
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
@@ -306,7 +305,6 @@
     <div id="adminPage" class="screen">
         <div class="card">
             <h2>🎛️ لوحة التحكم العامة</h2>
-            <button class="btn btn-archive" onclick="toggleArchive()">📁 سجل الطلبات المكتملة</button>
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
         </div>
         <div class="monitor-card">
@@ -321,7 +319,8 @@
             document.getElementById(pageId).classList.add('active');
         }
         function resetForm() {
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون (أو رابط موقعه)">';
+            // نمسح فقط العناوين الإضافية ونترك الهاتف والموقع ثابتين كما طلبت
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">';
         }
     </script>
 </body>
