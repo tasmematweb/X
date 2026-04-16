@@ -28,9 +28,10 @@
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
+        // دالة التحقق من الكود (تمت إضافة الكود 011483 هنا)
         window.checkMerchantCode = function() {
             const code = document.getElementById('merchantCodeInput').value;
-            const allowedCodes = ["55555", "11111"];
+            const allowedCodes = ["55555", "11111", "011483"]; // الكود الجديد مضاف هنا
             if (allowedCodes.includes(code)) { 
                 currentMerchantCode = code;
                 localStorage.setItem('EUX_Saved_Code', code);
@@ -61,7 +62,7 @@
                     createdAt: new Date()
                 });
                 resetForm();
-                showModal('statusModal'); // إظهار النافذة المنبثقة عند النجاح
+                showModal('statusModal'); // نافذة التأكيد المنبثقة
             } catch (e) { 
                 alert("خطأ في الاتصال");
             }
@@ -160,7 +161,7 @@
 
     <div id="loginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('loginModal')">
         <div class="modal-content">
-            <input type="password" id="merchantCodeInput" class="merchant-input-style" placeholder="•••••">
+            <input type="password" id="merchantCodeInput" class="merchant-input-style" placeholder="••••••">
             <button class="btn btn-main" onclick="checkMerchantCode()">تسجيل الدخول</button>
             <div class="back" onclick="closeModal('loginModal')">إلغاء</div>
         </div>
