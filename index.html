@@ -2,228 +2,70 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EUX | الإبداع الرقمي المتكامل</title>
+    <title>لوحة التحكم - الأوردرات</title>
     <style>
-        :root {
-            /* تعديل الألوان للخلفية البيضاء وإضاءة زرقاء */
-            --primary: #0066ff; 
-            --primary-glow: rgba(0, 102, 255, 0.3);
-            --bg-deep: #ffffff; 
-            --text-high: #1a1a1a; 
-            --text-mid: #4a5568; 
-            --glass-border: rgba(0, 102, 255, 0.1);
-            --neon-shadow: 0 10px 30px rgba(0, 102, 255, 0.1);
-            --neon-hover: 0 15px 40px rgba(0, 102, 255, 0.2);
-            --ease: cubic-bezier(0.19, 1, 0.22, 1);
-        }
-
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; outline: none !important; 
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-deep);
-            color: var(--text-high);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            overflow-x: hidden;
-            line-height: 1.8;
-            text-align: center; 
-        }
-
-        /* --- WhatsApp Float (أبيض) --- */
-        .whatsapp-float {
-            position: fixed; 
-            width: 60px; height: 60px;
-            bottom: 20px; right: 20px;     
-            background-color: #ffffff; /* لون أبيض */
-            border-radius: 50px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            z-index: 1000;   
-            transition: all 0.3s ease;
-            border: 1px solid #e0e0e0;
-        }
-        .whatsapp-float img { width: 35px; height: 35px; }
-        .whatsapp-float:hover { transform: scale(1.1); box-shadow: 0 8px 25px rgba(0,102,255,0.2); }
-
-        /* --- Loader (EUX) --- */
-        #loader {
-            position: fixed; inset: 0; background: var(--bg-deep); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .loader-logo { font-size: 40px; font-weight: 900; letter-spacing: 8px; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); margin-bottom: 20px; }
-        .loader-bar { width: 220px; height: 3px; background: #f0f0f0; position: relative; border-radius: 10px; }
-        .loader-prog { position: absolute; height: 100%; width: 0; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: load 2.5s forwards; border-radius: 10px; }
-        @keyframes load { to { width: 100%; } }
-
-        /* --- Navbar --- */
-        .navbar { position: fixed; top: 0; width: 100%; padding: 20px 8%; display: flex; justify-content: center; z-index: 1000; background: rgba(255,255,255,0.8); backdrop-filter: blur(15px); border-bottom: 1px solid var(--glass-border); }
-        .nav-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: 2px; }
-
-        section { padding: 100px 10%; position: relative; max-width: 1000px; margin: auto; }
-
-        /* --- Hero --- */
-        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .logo-glow { 
-            font-size: clamp(80px, 15vw, 150px); font-weight: 900; 
-            color: var(--primary);
-            filter: drop-shadow(0 0 30px var(--primary-glow));
-            animation: float 6s ease-in-out infinite;
-        }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        .hero p { font-size: 1.3rem; color: var(--text-mid); margin: 30px 0; }
-
-        /* --- Images --- */
-        .img-container {
-            width: 100%; max-width: 850px; margin: 40px auto;
-            border-radius: 30px; overflow: hidden;
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--neon-shadow);
-            transition: 0.6s var(--ease);
-        }
-        .img-container:hover { transform: scale(1.02); box-shadow: var(--neon-hover); }
-        .img-container img { width: 100%; height: auto; display: block; }
-
-        /* --- Cards --- */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin: 60px 0; }
-        .card { 
-            background: #ffffff; border: 1px solid var(--glass-border); 
-            padding: 35px; border-radius: 25px; transition: 0.5s;
-            box-shadow: 5px 5px 20px rgba(0,0,0,0.02);
-        }
-        .card:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: var(--neon-hover); }
-        .card h3 { color: var(--primary); margin-bottom: 15px; }
-
-        /* --- Buttons --- */
-        .btn-neon {
-            display: inline-block; padding: 18px 50px; border-radius: 60px; 
-            background: var(--primary); color: #fff; border: none;
-            cursor: pointer; font-weight: 700; text-decoration: none;
-            box-shadow: 0 10px 20px var(--primary-glow); transition: 0.4s; font-size: 18px;
-        }
-        .btn-neon:hover { transform: scale(1.05); box-shadow: 0 15px 30px var(--primary-glow); }
-
-        /* --- Modal --- */
-        .modal { position: fixed; inset: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { width: 90%; max-width: 500px; background: #fff; padding: 40px; border-radius: 30px; border: 1px solid var(--primary); box-shadow: var(--neon-hover); }
-        .modal.open { display: flex; }
-        input, textarea { width: 100%; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border: 1px solid #eee; border-radius: 12px; color: #333; }
-
-        .reveal { opacity: 0; transform: translateY(30px); transition: 1s var(--ease); }
-        .reveal.active { opacity: 1; transform: translateY(0); }
-
-        .highlight-text { font-size: 1.8rem; font-weight: 700; color: var(--text-high); }
+        body { font-family: Arial, sans-serif; background-color: #eef2f3; padding: 20px; text-align: center; }
+        .order-card { background: white; border: 1px solid #ddd; padding: 15px; margin: 10px auto; width: 80%; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-accept { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-cancel { background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .status-tag { font-weight: bold; color: #007bff; }
     </style>
 </head>
 <body>
-    <a href="https://wa.me/201155590191" class="whatsapp-float" target="_blank">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp">
-    </a>
 
-    <div id="loader">
-        <div class="loader-logo">EUX</div>
-        <div class="loader-bar"><div class="loader-prog"></div></div>
-    </div>
-
-    <nav class="navbar">
-        <div class="nav-logo">EUX</div>
-    </nav>
-
-    <main>
-        <section class="hero">
-            <h1 class="logo-glow reveal">EUX</h1>
-            <p class="reveal">
-السُّرْعَةُ أَهَمُّ عَامِلٍ مِنْ عَوَامِلِ الْبَيْعِ أُونْلَايِن. التَّوْصِيلُ مِنْ خِلَالِنَا يَسْتَغْرِقُ ٤٨ سَاعَةً فَقَط.</p>
-            
-            <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/1c/c8/8f/1cc88f3548685febe23d595981a3e20d.jpg" alt="EUX Creation">
-            </div>
-        </section>
-
-        <section>
-            <h2 class="highlight-text reveal">السرعة والدقة في EUX هي ما يميزنا عن الآخرين.</h2>
-            <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/b1/e1/40/b1e1408bce422fd785750620a4fe15f3.jpg" alt="Performance">
-            </div>
-            <div class="grid">
-                <div class="card reveal">
-                    <h3>رؤية EUX</h3>
-                    <p>نسعى لأن نكون الشريك التقني الأول لكل طموح يبحث عن التميز في العالم الرقمي.</p>
-                </div>
-                <div class="card reveal">
-                    <h3>لماذا نحن؟</h3>
-                    <p>لأننا في EUX نهتم بأدق التفاصيل البرمجية والبصرية لنضمن لك تجربة مستخدم فريدة.</p>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="highlight-text reveal">نصنع لك هوية بصرية تعيش طويلاً.</h2>
-            <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/e7/0e/a4/e70ea418df1fa3bc351e4556067bca9e.jpg" alt="Visual Identity">
-            </div>
-            <p class="reveal">في EUX، لا نبني مواقع فقط، بل نصمم كياناً رقمياً متكاملاً يعبر عن قصتك.</p>
-        </section>
-
-        <section>
-            <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/69/e0/03/69e00356be78026ad18dbe860efc835c.jpg" alt="Team">
-            </div>
-            <div class="img-container reveal">
-                <img src="https://i.pinimg.com/736x/2d/76/5f/2d765f57bf4e726d5bf4926fc19ec41e.jpg" alt="Success">
-            </div>
-
-            <h2 class="highlight-text reveal" style="margin-top: 40px;">انطلق نحو النجاح مع EUX اليوم.</h2>
-            
-            <div class="reveal" style="margin-top: 40px;">
-                <button class="btn-neon" onclick="toggleModal(true)">ابدأ مشروعك الآن</button>
-            </div>
-        </section>
-    </main>
-
-    <div class="modal" id="modal">
-        <div class="modal-box">
-            <h2 style="text-align: center; color: var(--primary); margin-bottom: 25px;">تواصل مع EUX</h2>
-            <input type="text" id="name" placeholder="الاسم الكامل">
-            <input type="tel" id="phone" placeholder="رقم الواتساب">
-            <textarea id="desc" rows="4" placeholder="أخبرنا عن فكرتك..."></textarea>
-            <button class="btn-neon" style="width: 100%;" onclick="sendData()">إرسال الطلب</button>
-            <button onclick="toggleModal(false)" style="display: block; width: 100%; background: none; border: none; color: #888; margin-top: 20px; cursor: pointer;">إغلاق</button>
-        </div>
-    </div>
+    <h2>قائمة الأوردرات الواردة</h2>
+    <div id="ordersContainer"></div>
+    <br>
+    <button onclick="window.location.href='index.html'">العودة للصفحة الرئيسية</button>
 
     <script>
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const l = document.getElementById('loader');
-                l.style.opacity = '0';
-                setTimeout(() => l.style.display = 'none', 1000);
-            }, 2500);
-        });
+        function displayOrders() {
+            const container = document.getElementById('ordersContainer');
+            const orders = JSON.parse(localStorage.getItem('orders')) || [];
+            container.innerHTML = '';
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); });
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+            if (orders.length === 0) {
+                container.innerHTML = '<p>لا توجد أوردرات حالياً.</p>';
+                return;
+            }
 
-        function toggleModal(s) {
-            const m = document.getElementById('modal');
-            s ? m.classList.add('open') : m.classList.remove('open');
-            document.body.style.overflow = s ? 'hidden' : 'auto';
+            orders.forEach(order => {
+                const div = document.createElement('div');
+                div.className = 'order-card';
+                div.innerHTML = `
+                    <p><strong>عنوان الاستلام:</strong> ${order.pickup}</p>
+                    <p><strong>عنوان التسليم:</strong> ${order.delivery}</p>
+                    <p class="status-tag">الحالة: ${order.status}</p>
+                    ${order.status === 'قيد الانتظار' 
+                        ? `<button class="btn-accept" onclick="acceptOrder(${order.id})">قبول الأوردر</button>` 
+                        : `<button class="btn-cancel" onclick="deleteOrder(${order.id})">إلغاء (حذف)</button>`
+                    }
+                `;
+                container.appendChild(div);
+            });
         }
 
-        function sendData() {
-            const n = document.getElementById('name').value;
-            const p = document.getElementById('phone').value;
-            const d = document.getElementById('desc').value;
-            if(!n || !p) return alert("فضلاً، أدخل البيانات المطلوبة");
-            
-            const msg = `طلب استشارة من موقع EUX:\n👤 الاسم: ${n}\n📞 الهاتف: ${p}\n📝 التفاصيل: ${d}`;
-            window.open(`https://wa.me/201155590191?text=${encodeURIComponent(msg)}`);
-        }
+        // وظيفة قبول الأوردر
+        window.acceptOrder = (id) => {
+            let orders = JSON.parse(localStorage.getItem('orders'));
+            orders = orders.map(order => {
+                if(order.id === id) order.status = 'تم القبول';
+                return order;
+            });
+            localStorage.setItem('orders', JSON.stringify(orders));
+            displayOrders();
+        };
+
+        // وظيفة إلغاء الأوردر (حذفه نهائياً)
+        window.deleteOrder = (id) => {
+            let orders = JSON.parse(localStorage.getItem('orders'));
+            orders = orders.filter(order => order.id !== id);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            displayOrders();
+        };
+
+        // تحديث القائمة عند فتح الصفحة
+        displayOrders();
     </script>
 </body>
 </html>
-
