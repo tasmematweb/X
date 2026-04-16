@@ -28,7 +28,7 @@
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
-        let map, marker; // متغيرات الخريطة
+        let map, marker;
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
@@ -56,47 +56,72 @@
             closeModal('deliveryLoginModal');
             goTo(page);
             if(role === 'merchant') {
-                loadSavedData();
+                loadPersistentData(code);
                 initInteractiveMap();
             }
         }
 
         window.logout = function() {
-            localStorage.clear();
+            // نمسح الجلسة الحالية فقط ولا نمسح البيانات المحفوظة (رقم الهاتف والموقع)
+            localStorage.removeItem('EUX_User_Code');
+            localStorage.removeItem('EUX_Role');
             location.reload();
         };
 
-        window.loadSavedData = function() {
+        // حفظ وتحميل البيانات المرتبطة بكود التاجر
+        window.loadPersistentData = function(code) {
+            const savedPhone = localStorage.getItem(`EUX_Phone_${code}`);
+            const savedLoc = localStorage.getItem(`EUX_Loc_${code}`);
+            
             if(document.getElementById('shopNumber')) {
-                document.getElementById('shopNumber').value = localStorage.getItem('EUX_Shop_Num') || "";
-                document.getElementById('shopLocation').value = localStorage.getItem('EUX_Shop_Loc') || "";
+                document.getElementById('shopNumber').value = savedPhone || "";
+                document.getElementById('shopLocation').value = savedLoc || "";
             }
         };
 
-        // نظام تحديد المواقع التفاعلي (Uber Style)
+        window.savePersistentData = function() {
+            if(userRole === 'merchant') {
+                const phone = document.getElementById('shopNumber').value;
+                const loc = document.getElementById('shopLocation').value;
+                localStorage.setItem(`EUX_Phone_${currentUserCode}`, phone);
+                localStorage.setItem(`EUX_Loc_${currentUserCode}`, loc);
+            }
+        };
+
         function initInteractiveMap() {
             setTimeout(() => {
                 if (map) return;
-                map = L.map('map').setView([30.0444, 31.2357], 13); // البداية من القاهرة كمثال
+                
+                // استرجاع الإحداثيات القديمة إذا وجدت أو البدء من الافتراضي
+                let startCoords = [30.0444, 31.2357];
+                const savedLoc = localStorage.getItem(`EUX_Loc_${currentUserCode}`);
+                if(savedLoc && savedLoc.includes(',')) {
+                    const parts = savedLoc.split('0')[1].split(',');
+                    startCoords = [parseFloat(parts[0]), parseFloat(parts[1])];
+                }
+
+                map = L.map('map').setView(startCoords, 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-                marker = L.marker([30.0444, 31.2357], {draggable: true}).addTo(map);
+                marker = L.marker(startCoords, {draggable: true}).addTo(map);
 
                 marker.on('dragend', function (e) {
                     const lat = marker.getLatLng().lat;
                     const lng = marker.getLatLng().lng;
-                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+                    const url = `https://www.google.com/maps?q=$${lat},${lng}`;
                     document.getElementById('shopLocation').value = url;
-                    localStorage.setItem('EUX_Shop_Loc', url);
+                    savePersistentData(); // حفظ تلقائي عند تغيير الموقع
                 });
 
-                map.locate({setView: true, maxZoom: 16});
-                map.on('locationfound', (e) => {
-                    marker.setLatLng(e.latlng);
-                    const url = `https://www.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}`;
-                    document.getElementById('shopLocation').value = url;
-                    localStorage.setItem('EUX_Shop_Loc', url);
-                });
+                if(!savedLoc) {
+                    map.locate({setView: true, maxZoom: 16});
+                    map.on('locationfound', (e) => {
+                        marker.setLatLng(e.latlng);
+                        const url = `https://www.google.com/maps?q=$${e.latlng.lat},${e.latlng.lng}`;
+                        document.getElementById('shopLocation').value = url;
+                        savePersistentData();
+                    });
+                }
             }, 500);
         }
 
@@ -116,8 +141,8 @@
             
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
 
-            localStorage.setItem('EUX_Shop_Num', shopNum);
-            localStorage.setItem('EUX_Shop_Loc', shopLoc);
+            // تأكيد الحفظ النهائي للبيانات المرتبطة بالكود
+            savePersistentData();
 
             try {
                 await addDoc(ordersCol, {
@@ -180,15 +205,12 @@
                 if(aList && order.status !== "completed") {
                     aList.innerHTML += `<div class="monitor-item admin-card"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
                 }
-                if(aArchive && order.status === "completed") {
-                    aArchive.innerHTML += `<div class="monitor-item admin-card" style="border-right: 5px solid #28a745;"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong> (مكتمل)</div></div>`;
-                }
             });
         });
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
-            else if (userRole === 'merchant') { goTo('merchantPage'); loadSavedData(); initInteractiveMap(); }
+            else if (userRole === 'merchant') { goTo('merchantPage'); loadPersistentData(currentUserCode); initInteractiveMap(); }
             else if (userRole === 'delivery') goTo('deliveryPage');
         };
     </script>
@@ -208,7 +230,6 @@
         .btn-finish-red { background: #dc3545; color: white; }
         .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
         
-        /* تصميم الخريطة التفاعلية */
         #map { height: 250px; width: 100%; border-radius: 15px; margin: 10px 0; border: 1px solid #ddd; z-index: 1; }
         .btn-gps-link { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 5px 0; font-size: 14px; border: 1px solid #1a73e8; }
         .map-link { color: #34a853; font-weight: bold; text-decoration: underline; }
@@ -259,13 +280,13 @@
     <div id="merchantPage" class="screen">
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
-            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل">
-            <p style="font-size: 12px; color: #1a73e8;">حدد موقعك بدقة بسحب الدبوس على الخريطة:</p>
+            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل" onchange="savePersistentData()">
+            <p style="font-size: 12px; color: #1a73e8;">موقعك المحفوظ (اسحب الدبوس للتعديل):</p>
             <div id="map"></div>
-            <input type="text" id="shopLocation" placeholder="رابط الموقع (يتم تحديثه تلقائياً)" readonly>
+            <input type="text" id="shopLocation" placeholder="رابط الموقع" readonly>
             
             <div id="addressContainer" style="width: 100%;">
-                <input type="text" class="delivery-address" placeholder="عنوان الزبون (أو رابط موقعه)">
+                <input type="text" class="delivery-address" placeholder="عنوان الزبون أو رابط موقعه">
             </div>
             <button class="btn btn-add" onclick="addAddressField()">➕ وجهة أخرى لنفس الطلب</button>
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
@@ -287,10 +308,6 @@
             <h2>🎛️ لوحة التحكم العامة</h2>
             <button class="btn btn-archive" onclick="toggleArchive()">📁 سجل الطلبات المكتملة</button>
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
-        </div>
-        <div id="adminArchive" class="monitor-card" style="display: none; background: #e9ecef; border: 2px solid #28a745;">
-            <h3 style="color: #28a745;">✅ المكتملة</h3>
-            <div id="adminArchiveList"></div>
         </div>
         <div class="monitor-card">
             <h3>📈 الجارية الآن</h3>
