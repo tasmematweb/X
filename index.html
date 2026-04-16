@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام طلبات Gooo السحابي</title>
+    <title>نظام Gooo - تاجر ومندوب</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // بيانات مشروعك Gooo المستخرجة من الصور
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
             authDomain: "gooo-a453b.firebaseapp.com",
@@ -20,58 +19,78 @@
             measurementId: "G-R2HL2FJ5CR"
         };
 
-        // تهيئة السحابة
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
 
-        // وظيفة إرسال الطلب للسحابة
+        // وظيفة التاجر: إرسال طلب
         window.confirmOrder = async function() {
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
-            const addresses = Array.from(document.querySelectorAll('.delivery-address'))
-                                 .map(input => input.value)
-                                 .filter(v => v !== "");
+            const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
 
             if (!shopNum || !shopLoc || addresses.length === 0) {
-                alert("يرجى ملء جميع البيانات أولاً");
+                alert("يرجى ملء كافة البيانات");
                 return;
             }
 
             try {
                 await addDoc(ordersCol, {
-                    shopNum: shopNum,
-                    shopLoc: shopLoc,
-                    addresses: addresses,
+                    shopNum,
+                    shopLoc,
+                    addresses,
+                    status: "waiting", // حالة الانتظار
                     createdAt: new Date()
                 });
-                alert("✅ تم إرسال الطلب بنجاح وهو يظهر الآن عند الجميع!");
+                alert("✅ تم نشر الطلب للمناديب!");
                 resetForm();
-                showMain();
-            } catch (e) {
-                console.error(e);
-                alert("❌ فشل الإرسال! تأكد من اختيار (Start in test mode) في إعدادات Firebase");
+                goTo('entryPage');
+            } catch (e) { alert("خطأ في الاتصال بالسحابة"); }
+        };
+
+        // وظيفة المندوب: قبول الطلب
+        window.acceptOrder = async function(orderId) {
+            const orderRef = doc(db, "orders", orderId);
+            await updateDoc(orderRef, { status: "delivering" });
+            alert("🚚 تم قبول الطلب، بالتوفيق في التوصيل!");
+        };
+
+        // وظيفة المندوب: إنهاء الطلب (حذفه بعد التوصيل)
+        window.finishOrder = async function(orderId) {
+            if(confirm("هل تم توصيل الطلب واستلام المبلغ؟")) {
+                await deleteDoc(doc(db, "orders", orderId));
+                alert("✅ تم إنهاء الطلب بنجاح!");
             }
         };
 
-        // تحديث الطلبات لحظياً عند كل الهواتف
-        const q = query(ordersCol, orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
+        // تحديث القائمة للمندوبين
+        onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const list = document.getElementById('ordersList');
             list.innerHTML = "";
-            if (snapshot.empty) {
-                list.innerHTML = "<p style='color:#888;'>لا توجد طلبات حالية</p>";
-                return;
-            }
             snapshot.forEach((doc) => {
                 const order = doc.data();
+                const id = doc.id;
+                
+                let actionBtn = "";
+                let statusText = "";
+                
+                if (order.status === "waiting") {
+                    statusText = "<span style='color:orange'>⏳ في الانتظار</span>";
+                    actionBtn = `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>`;
+                } else {
+                    statusText = "<span style='color:blue'>🚚 جاري التوصيل</span>";
+                    actionBtn = `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل (إنهاء)</button>`;
+                }
+
                 list.innerHTML += `
                     <div class="order-card">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span class="badge">محل: ${order.shopNum}</span>
+                        <div style="display:flex; justify-content:space-between">
+                            <strong>محل رقم: ${order.shopNum}</strong>
+                            ${statusText}
                         </div>
-                        <p>📍 <strong>الموقع:</strong> <a href="${order.shopLoc}" target="_blank">فتح الخريطة</a></p>
-                        <p>🏠 <strong>عناوين التسليم:</strong> ${order.addresses.join(' | ')}</p>
+                        <p>📍 <a href="${order.shopLoc}" target="_blank">موقع المحل</a></p>
+                        <p>🏠 العناوين: ${order.addresses.join(' | ')}</p>
+                        ${actionBtn}
                     </div>
                 `;
             });
@@ -79,74 +98,78 @@
     </script>
 
     <style>
-        :root { --main: #1a73e8; --orange: #f39c12; }
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; direction: rtl; }
-        .container { max-width: 500px; margin: auto; }
-        .page { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
-        .hidden { display: none; }
-        .form-group { text-align: right; margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
-        input { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .btn { cursor: pointer; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        .btn-main { background: var(--main); color: white; }
-        .btn-confirm { background: var(--orange); color: white; }
-        .btn-add { background: #27ae60; color: white; font-size: 14px; }
-        .order-card { background: white; border-right: 6px solid #27ae60; padding: 15px; margin-top: 12px; border-radius: 8px; text-align: right; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .badge { background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 15px; font-weight: bold; }
+        body { font-family: 'Cairo', sans-serif; background: #f0f2f5; margin: 0; direction: rtl; }
+        .screen { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+        .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        /* صفحة الدخول */
+        .entry-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
+        .choice-btn { width: 100%; padding: 20px; margin: 10px 0; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-merchant { background: #1a73e8; color: white; }
+        .btn-delivery { background: #34a853; color: white; }
+        
+        /* النماذج والطلبات */
+        .content-card { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; padding: 12px; }
+        .btn-confirm { background: #fb8c00; color: white; }
+        .btn-accept { background: #1a73e8; color: white; }
+        .btn-finish { background: #27ae60; color: white; }
+        
+        .order-card { background: #fff; border-right: 6px solid #1a73e8; padding: 15px; margin-top: 15px; border-radius: 8px; text-align: right; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; }
+        .back-link { margin-top: 20px; color: #666; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="mainPage" class="page">
-        <h2>📦 طلبات Gooo المباشرة</h2>
-        <div id="ordersList">جاري ربط السحابة...</div>
-        <button class="btn btn-main" onclick="showForm()">+ إنشاء طلب جديد</button>
+    <div id="entryPage" class="screen active">
+        <div class="entry-card">
+            <h1 style="color: #1a73e8; margin-bottom: 30px;">Gooo</h1>
+            <button class="choice-btn btn-merchant" onclick="goTo('merchantPage')">🏬 محل التاجر</button>
+            <button class="choice-btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ أنا المندوب</button>
+        </div>
     </div>
 
-    <div id="formPage" class="page hidden">
-        <h2>إضافة طلب جديد</h2>
-        <div class="form-group">
-            <label>رقم المحل</label>
-            <input type="text" id="shopNumber" placeholder="أدخل رقم المحل">
+    <div id="merchantPage" class="screen">
+        <div class="content-card">
+            <h2>إنشاء طلب جديد</h2>
+            <input type="text" id="shopNumber" placeholder="رقم المحل">
+            <input type="text" id="shopLocation" placeholder="رابط موقع المحل (جوجل ماب)">
+            <div id="addressContainer">
+                <input type="text" class="delivery-address" placeholder="عنوان التسليم">
+            </div>
+            <button class="btn btn-confirm" onclick="window.confirmOrder()">نشر الطلب للمناديب</button>
+            <p class="back-link" onclick="goTo('entryPage')">العودة للرئيسية</p>
         </div>
-        <div class="form-group">
-            <label>موقع المحل</label>
-            <input type="text" id="shopLocation" placeholder="رابط جوجل ماب">
-        </div>
-        <div id="addressContainer" class="form-group">
-            <label>عناوين التسليم</label>
-            <input type="text" class="delivery-address" placeholder="عنوان التسليم 1">
-        </div>
-        <button class="btn btn-add" onclick="addAddressField()">+ إضافة عنوان آخر</button>
-        <button class="btn btn-confirm" onclick="window.confirmOrder()">تأكيد وإرسال للسحابة</button>
-        <button class="btn" style="background:#eee; color:#666;" onclick="showMain()">رجوع</button>
     </div>
-</div>
 
-<script>
-    function showForm() {
-        document.getElementById('mainPage').classList.add('hidden');
-        document.getElementById('formPage').classList.remove('hidden');
-    }
-    function showMain() {
-        document.getElementById('formPage').classList.add('hidden');
-        document.getElementById('mainPage').classList.remove('hidden');
-    }
-    function addAddressField() {
-        const input = document.createElement('input');
-        input.type = "text";
-        input.className = "delivery-address";
-        input.placeholder = "عنوان إضافي";
-        input.style.marginTop = "10px";
-        document.getElementById('addressContainer').appendChild(input);
-    }
-    function resetForm() {
-        document.getElementById('shopNumber').value = '';
-        document.getElementById('shopLocation').value = '';
-        document.getElementById('addressContainer').innerHTML = '<label>عناوين التسليم</label><input type="text" class="delivery-address" placeholder="عنوان التسليم 1">';
-    }
-</script>
+    <div id="deliveryPage" class="screen">
+        <div style="width: 100%; max-width: 500px;">
+            <h2 style="text-align: center;">الطلبات المتاحة</h2>
+            <div id="ordersList">جاري تحميل الطلبات...</div>
+            <p class="back-link" style="text-align: center;" onclick="goTo('entryPage')">العودة للرئيسية</p>
+        </div>
+    </div>
 
+    <script>
+        function goTo(pageId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function addAddressField() {
+            const input = document.createElement('input');
+            input.className = "delivery-address";
+            input.placeholder = "عنوان إضافي";
+            document.getElementById('addressContainer').appendChild(input);
+        }
+
+        function resetForm() {
+            document.getElementById('shopNumber').value = '';
+            document.getElementById('shopLocation').value = '';
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان التسليم">';
+        }
+    </script>
 </body>
 </html>
+
