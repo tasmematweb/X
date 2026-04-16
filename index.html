@@ -1,118 +1,160 @@
-<style>
-  .order-container { max-width: 600px; margin: 20px auto; font-family: sans-serif; direction: rtl; }
-  .main-page { text-align: center; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
-  .hidden { display: none; }
-  .form-group { margin-bottom: 15px; text-align: right; }
-  .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-  .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-  .address-item { display: flex; gap: 5px; margin-bottom: 5px; }
-  .btn { cursor: pointer; padding: 10px 20px; border: none; border-radius: 5px; transition: 0.3s; }
-  .btn-primary { background-color: #2c3e50; color: white; }
-  .btn-add { background-color: #27ae60; color: white; margin-top: 5px; }
-  .btn-confirm { background-color: #e67e22; color: white; width: 100%; margin-top: 20px; }
-  .order-card { background: #f9f9f9; border-right: 5px solid #27ae60; padding: 15px; margin-top: 15px; text-align: right; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-</style>
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الطلبات السحابي</title>
+  
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // --- ضع بيانات مشروعك هنا ---
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // ----------------------------
+
+    // تهيئة Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ordersCol = collection(db, "orders");
+
+    // وظيفة إرسال الطلب إلى Firebase
+    async function confirmOrder() {
+      const shopNum = document.getElementById('shopNumber').value;
+      const shopLoc = document.getElementById('shopLocation').value;
+      const addresses = Array.from(document.querySelectorAll('.delivery-address'))
+                           .map(input => input.value)
+                           .filter(v => v !== "");
+
+      if (!shopNum || !shopLoc || addresses.length === 0) {
+        alert("يرجى ملء كافة البيانات");
+        return;
+      }
+
+      try {
+        await addDoc(ordersCol, {
+          shopNum,
+          shopLoc,
+          addresses,
+          createdAt: new Date()
+        });
+        
+        resetForm();
+        showMain();
+      } catch (e) {
+        console.error("Error adding document: ", e);
+        alert("حدث خطأ أثناء إرسال الطلب");
+      }
+    }
+
+    // وظيفة جلب البيانات حياً (Real-time) من Firebase
+    const q = query(ordersCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      const list = document.getElementById('ordersList');
+      if (snapshot.empty) {
+        list.innerHTML = "<p>لا توجد طلبات حالية.</p>";
+        return;
+      }
+      
+      list.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const order = doc.data();
+        list.innerHTML += `
+          <div class="order-card">
+            <strong>رقم المحل:</strong> ${order.shopNum} <br>
+            <strong>الموقع:</strong> <a href="${order.shopLoc}" target="_blank">فتح الرابط</a> <br>
+            <strong>عناوين التسليم:</strong> ${order.addresses.join(' | ')}
+            <div style="font-size: 10px; color: #888; margin-top:5px;">
+              ${order.createdAt?.toDate().toLocaleString('ar-EG')}
+            </div>
+          </div>
+        `;
+      });
+    });
+
+    // جعل الوظائف متاحة عالمياً للـ HTML
+    window.confirmOrder = confirmOrder;
+  </script>
+
+  <style>
+    .order-container { max-width: 600px; margin: 20px auto; font-family: sans-serif; direction: rtl; }
+    .main-page { text-align: center; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background: white; }
+    .hidden { display: none; }
+    .form-group { margin-bottom: 15px; text-align: right; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .btn { cursor: pointer; padding: 10px 20px; border: none; border-radius: 5px; transition: 0.3s; font-weight: bold; }
+    .btn-primary { background-color: #2c3e50; color: white; width: 100%; }
+    .btn-add { background-color: #27ae60; color: white; margin-top: 5px; }
+    .btn-confirm { background-color: #e67e22; color: white; width: 100%; margin-top: 20px; }
+    .order-card { background: #f9f9f9; border-right: 5px solid #27ae60; padding: 15px; margin-top: 15px; text-align: right; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }
+    body { background-color: #f4f7f6; padding: 10px; }
+  </style>
+</head>
+<body>
 
 <div class="order-container">
   <div id="mainPage" class="main-page">
-    <h2>قائمة الطلبات</h2>
+    <h2>📦 قائمة الطلبات المباشرة</h2>
     <div id="ordersList">
-      <p>لا توجد طلبات حالية.</p>
+      <p>جاري تحميل الطلبات...</p>
     </div>
-    <br><br>
-    <button class="btn btn-primary" onclick="showForm()">إنشاء طلب</button>
+    <br>
+    <button class="btn btn-primary" onclick="showForm()">إنشاء طلب جديد</button>
   </div>
 
   <div id="formPage" class="main-page hidden">
     <h2>إستمارة الطلب</h2>
-    
     <div class="form-group">
       <label>رقم المحل</label>
       <input type="text" id="shopNumber" placeholder="أدخل رقم المحل">
     </div>
-
     <div class="form-group">
       <label>تحديد لوكيشن المحل</label>
-      <input type="text" id="shopLocation" placeholder="رابط الموقع أو العنوان">
+      <input type="text" id="shopLocation" placeholder="رابط خرائط جوجل">
     </div>
-
     <div class="form-group" id="addressContainer">
       <label>عناوين التسليم</label>
       <div class="address-item">
-        <input type="text" class="delivery-address" placeholder="عنوان التسليم 1">
+        <input type="text" class="delivery-address" placeholder="العنوان 1" style="margin-bottom:5px;">
       </div>
     </div>
     <button class="btn btn-add" onclick="addAddressField()">+ إضافة عنوان آخر</button>
-
-    <button class="btn btn-confirm" onclick="confirmOrder()">تأكيد الطلب</button>
+    <button class="btn btn-confirm" onclick="confirmOrder()">إرسال إلى السحابة</button>
+    <button class="btn" style="background:#ccc; margin-top:10px; width:100%" onclick="showMain()">إلغاء</button>
   </div>
 </div>
 
 <script>
-  // وظيفة لإظهار الاستمارة
   function showForm() {
     document.getElementById('mainPage').classList.add('hidden');
     document.getElementById('formPage').classList.remove('hidden');
   }
 
-  // وظيفة لإضافة خانة عنوان جديدة
-  function addAddressField() {
-    const container = document.getElementById('addressContainer');
-    const div = document.createElement('div');
-    div.className = 'address-item';
-    div.innerHTML = `<input type="text" class="delivery-address" placeholder="عنوان إضافي">`;
-    container.appendChild(div);
-  }
-
-  // وظيفة تأكيد الطلب وحفظه
-  function confirmOrder() {
-    const shopNum = document.getElementById('shopNumber').value;
-    const shopLoc = document.getElementById('shopLocation').value;
-    const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(input => input.value).filter(v => v !== "");
-
-    if (!shopNum || !shopLoc || addresses.length === 0) {
-      alert("يرجى ملء كافة البيانات");
-      return;
-    }
-
-    // إنشاء كائن الطلب
-    const orderData = {
-      id: Date.now(),
-      shopNum,
-      shopLoc,
-      addresses
-    };
-
-    // حفظ في الذاكرة المؤقتة (Local Storage) لعرضه فوراً
-    let orders = JSON.parse(localStorage.getItem('myOrders') || "[]");
-    orders.unshift(orderData); // إضافة الطلب الجديد في البداية
-    localStorage.setItem('myOrders', JSON.stringify(orders));
-
-    // العودة للصفحة الرئيسية وتحديث القائمة
-    displayOrders();
+  function showMain() {
     document.getElementById('formPage').classList.add('hidden');
     document.getElementById('mainPage').classList.remove('hidden');
-    
-    // إعادة تعيين النموذج
-    resetForm();
   }
 
-  function displayOrders() {
-    const list = document.getElementById('ordersList');
-    const orders = JSON.parse(localStorage.getItem('myOrders') || "[]");
-    
-    if (orders.length === 0) {
-      list.innerHTML = "<p>لا توجد طلبات حالية.</p>";
-      return;
-    }
-
-    list.innerHTML = orders.map(order => `
-      <div class="order-card">
-        <strong>رقم المحل:</strong> ${order.shopNum} <br>
-        <strong>الموقع:</strong> ${order.shopLoc} <br>
-        <strong>عناوين التسليم:</strong> ${order.addresses.join(' | ')}
-      </div>
-    `).join('');
+  function addAddressField() {
+    const container = document.getElementById('addressContainer');
+    const input = document.createElement('input');
+    input.type = "text";
+    input.className = "delivery-address";
+    input.placeholder = "عنوان إضافي";
+    input.style.marginTop = "5px";
+    input.style.width = "100%";
+    input.style.padding = "12px";
+    input.style.border = "1px solid #ccc";
+    input.style.borderRadius = "4px";
+    container.appendChild(input);
   }
 
   function resetForm() {
@@ -120,10 +162,10 @@
     document.getElementById('shopLocation').value = '';
     document.getElementById('addressContainer').innerHTML = `
       <label>عناوين التسليم</label>
-      <div class="address-item"><input type="text" class="delivery-address" placeholder="عنوان التسليم 1"></div>
+      <div class="address-item"><input type="text" class="delivery-address" placeholder="العنوان 1"></div>
     `;
   }
-
-  // تشغيل عرض الطلبات عند تحميل الصفحة
-  window.onload = displayOrders;
 </script>
+
+</body>
+</html>
