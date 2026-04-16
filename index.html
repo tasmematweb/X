@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام EUX المتطور</title>
+    <title>نظام EUX - خصوصية التجار</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -23,14 +23,19 @@
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
 
+        // متغير لحفظ كود التاجر الحالي أثناء الجلسة
+        let currentMerchantCode = "";
+
         window.checkMerchantCode = function() {
             const code = prompt("يرجى إدخال كود التاجر:");
             const allowedCodes = ["55555", "11111"];
-            if (allowedCodes.includes(code)) { goTo('merchantPage'); } 
-            else { alert("الكود خاطئ!"); }
+            if (allowedCodes.includes(code)) { 
+                currentMerchantCode = code; // حفظ الكود لتمييز الطلبات
+                goTo('merchantPage'); 
+            } else { alert("الكود خاطئ!"); }
         };
 
-        // وظيفة التاجر: إرسال طلب والبقاء في الصفحة
+        // إرسال الطلب مع ربطه بكود التاجر
         window.confirmOrder = async function() {
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
@@ -43,6 +48,7 @@
 
             try {
                 await addDoc(ordersCol, {
+                    merchantCode: currentMerchantCode, // حفظ كود صاحب الطلب
                     shopNum,
                     shopLoc,
                     addresses,
@@ -50,33 +56,33 @@
                     createdAt: new Date()
                 });
                 alert("✅ تم نشر الطلب بنجاح!");
-                resetForm(); // يفرغ الخانات ويبقى في الصفحة
+                resetForm();
             } catch (e) { alert("خطأ في الاتصال"); }
         };
 
-        // وظيفة المندوب
         window.acceptOrder = async function(orderId) {
             await updateDoc(doc(db, "orders", orderId), { status: "delivering" });
         };
 
         window.finishOrder = async function(orderId) {
-            if(confirm("هل تم التوصيل نهائياً؟ سيتم حذف الطلب من النظام.")) {
+            if(confirm("هل تم التوصيل؟")) {
                 await deleteDoc(doc(db, "orders", orderId));
             }
         };
 
-        // تحديث الطلبات (للتجار والمناديب)
+        // تحديث البيانات اللحظي
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const deliveryList = document.getElementById('ordersList');
             const merchantList = document.getElementById('merchantOrdersMonitor');
+            
             deliveryList.innerHTML = "";
             merchantList.innerHTML = "";
 
-            snapshot.forEach((doc) => {
-                const order = doc.data();
-                const id = doc.id;
+            snapshot.forEach((docSnap) => {
+                const order = docSnap.data();
+                const id = docSnap.id;
                 
-                // قالب الطلب للمندوب
+                // 1. عرض كافة الطلبات للمناديب
                 let deliveryBtn = order.status === "waiting" ? 
                     `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>` :
                     `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل (إنهاء)</button>`;
@@ -90,18 +96,24 @@
                     </div>
                 `;
 
-                // قالب المراقبة للتاجر
-                let statusBadge = order.status === "waiting" ? 
-                    `<span class="badge badge-waiting">⏳ في الانتظار</span>` : 
-                    `<span class="badge badge-delivering">🚚 استلمه مندوب</span>`;
+                // 2. عرض الطلبات الخاصة بالتاجر الحالي فقط (الفلتر)
+                if (order.merchantCode === currentMerchantCode) {
+                    let statusBadge = order.status === "waiting" ? 
+                        `<span class="badge badge-waiting">⏳ في الانتظار</span>` : 
+                        `<span class="badge badge-delivering">🚚 استلمه مندوب</span>`;
 
-                merchantList.innerHTML += `
-                    <div class="monitor-item">
-                        <span>محل ${order.shopNum} - ${order.addresses[0]}</span>
-                        ${statusBadge}
-                    </div>
-                `;
+                    merchantList.innerHTML += `
+                        <div class="monitor-item">
+                            <span>محل ${order.shopNum} - ${order.addresses[0]}</span>
+                            ${statusBadge}
+                        </div>
+                    `;
+                }
             });
+            
+            if (merchantList.innerHTML === "") {
+                merchantList.innerHTML = "لا توجد طلبات جارية خاصة بك";
+            }
         });
     </script>
 
@@ -118,11 +130,7 @@
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept { background: #1a73e8; color: white; }
         .btn-finish { background: #34a853; color: white; }
-        
-        /* كروت المندوب */
         .order-card { background: white; padding: 15px; margin-top: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-right: 5px solid #1a73e8; width: 100%; text-align: right; }
-        
-        /* لوحة مراقبة التاجر */
         .monitor-card { background: #eef2f7; padding: 15px; border-radius: 12px; width: 100%; max-width: 450px; text-align: right; }
         .monitor-item { background: white; padding: 10px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 1px solid #ddd; }
         .badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
@@ -136,7 +144,6 @@
     <div id="entryPage" class="screen active" style="justify-content: center;">
         <div class="card">
             <h1 style="font-size: 50px; margin: 0; color: #1a73e8;">EUX</h1>
-            <p style="margin-bottom: 30px; color: #666;">إدارة الطلبات اللحظية</p>
             <button class="choice-btn btn-merchant" onclick="checkMerchantCode()">🏬 دخول التجار</button>
             <button class="choice-btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ دخول المناديب</button>
         </div>
@@ -144,23 +151,23 @@
 
     <div id="merchantPage" class="screen">
         <div class="card">
-            <h2>إنشاء طلب جديد</h2>
+            <h2>لوحة التاجر</h2>
             <input type="text" id="shopNumber" placeholder="رقم المحل">
             <input type="text" id="shopLocation" placeholder="موقع المحل (رابط)">
             <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
-            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب الآن</button>
-            <div class="back" onclick="goTo('entryPage')">خروج للرئيسية</div>
+            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
+            <div class="back" onclick="location.reload()">تسجيل الخروج</div>
         </div>
         
         <div class="monitor-card">
-            <h3 style="margin-top:0">📊 مراقبة طلباتك الحالية</h3>
-            <div id="merchantOrdersMonitor">لا توجد طلبات جارية</div>
+            <h3 style="margin-top:0">📊 طلباتك الحالية فقط</h3>
+            <div id="merchantOrdersMonitor">جاري التحميل...</div>
         </div>
     </div>
 
     <div id="deliveryPage" class="screen">
         <div style="width: 100%; max-width: 500px;">
-            <h2 style="text-align: center;">الطلبات المتاحة للمناديب</h2>
+            <h2 style="text-align: center;">كافة طلبات EUX</h2>
             <div id="ordersList"></div>
             <div class="back" style="text-align: center; display: block;" onclick="goTo('entryPage')">العودة للرئيسية</div>
         </div>
