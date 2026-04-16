@@ -66,14 +66,12 @@
             }
         };
 
-        window.getCurrentLocation = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-                    document.getElementById('shopLocation').value = link;
-                    localStorage.setItem('EUX_Shop_Loc', link);
-                }, () => alert("فشل تحديد الموقع"));
-            }
+        // وظيفة تتيح للتاجر اختيار أي مكان على الخريطة بحرية
+        window.pickLocationOnMap = function() {
+            // تفتح خرائط جوجل في نافذة جديدة ليتمكن التاجر من البحث واختيار الموقع ثم نسخ الرابط
+            const mapUrl = "https://www.google.com/maps";
+            window.open(mapUrl, '_blank');
+            alert("من فضلك اختر موقعك على الخريطة، ثم انسخ رابط الموقع (URL) وضعه في خانة موقع المحل.");
         };
 
         window.addAddressField = function() {
@@ -81,7 +79,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'delivery-address';
-            input.placeholder = 'عنوان زبون إضافي';
+            input.placeholder = 'عنوان زبون أو رابط موقعه';
             container.appendChild(input);
         };
 
@@ -141,7 +139,6 @@
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 
-                // تحويل عناوين الزبائن لروابط خرائط جوجل (إذا كان النص رابطاً)
                 const addrHTML = order.addresses.map(a => {
                     if(a.startsWith('http')) return `• <a href="${a}" target="_blank" class="map-link">📍 موقع الزبون على الخريطة</a>`;
                     return `• ${a}`;
@@ -195,7 +192,6 @@
         .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
         .btn-gps { background: #4285f4; color: white; font-size: 13px; padding: 8px; margin-bottom: 5px;}
         
-        /* تصميم روابط الخريطة للمندوب */
         .btn-gps-link { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 5px 0; font-size: 14px; border: 1px solid #1a73e8; }
         .map-link { color: #34a853; font-weight: bold; text-decoration: underline; }
 
@@ -262,12 +258,12 @@
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
             <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل">
-            <input type="text" id="shopLocation" placeholder="موقع المحل (رابط جوجل)">
-            <button class="btn btn-gps" onclick="getCurrentLocation()">📍 تحديد موقعي الحالي على جوجل</button>
+            <input type="text" id="shopLocation" placeholder="ضع رابط الموقع المختار هنا">
+            <button class="btn btn-gps" onclick="pickLocationOnMap()">🗺️ فتح الخريطة لاختيار موقع المحل</button>
             <div id="addressContainer" style="width: 100%;">
-                <input type="text" class="delivery-address" placeholder="عنوان الزبون (1)">
+                <input type="text" class="delivery-address" placeholder="عنوان الزبون (أو رابط موقعه)">
             </div>
-            <button class="btn btn-add" onclick="addAddressField()">➕ إضافة زبون آخر لنفس الطلب</button>
+            <button class="btn btn-add" onclick="addAddressField()">➕ إضافة وجهة أخرى لنفس الطلب</button>
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
             <div class="back" onclick="logout()">تسجيل الخروج</div>
         </div>
@@ -288,7 +284,7 @@
             document.getElementById(pageId).classList.add('active');
         }
         function resetForm() {
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون (1)">';
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون (أو رابط موقعه)">';
         }
     </script>
 </body>
