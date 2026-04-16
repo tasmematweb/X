@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام EUX - خصوصية التجار</title>
+    <title>نظام EUX - المتابعة المباشرة</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
             authDomain: "gooo-a453b.firebaseapp.com",
@@ -23,54 +24,52 @@
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
 
-        // متغير لحفظ كود التاجر الحالي أثناء الجلسة
         let currentMerchantCode = "";
 
         window.checkMerchantCode = function() {
-            const code = prompt("يرجى إدخال كود التاجر:");
+            const code = prompt("يرجى إدخال كود التاجر الخاص بك:");
             const allowedCodes = ["55555", "11111"];
             if (allowedCodes.includes(code)) { 
-                currentMerchantCode = code; // حفظ الكود لتمييز الطلبات
+                currentMerchantCode = code;
                 goTo('merchantPage'); 
-            } else { alert("الكود خاطئ!"); }
+            } else { alert("الكود غير صحيح!"); }
         };
 
-        // إرسال الطلب مع ربطه بكود التاجر
         window.confirmOrder = async function() {
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
 
             if (!shopNum || !shopLoc || addresses.length === 0) {
-                alert("يرجى ملء كافة البيانات");
+                alert("يرجى إكمال البيانات");
                 return;
             }
 
             try {
                 await addDoc(ordersCol, {
-                    merchantCode: currentMerchantCode, // حفظ كود صاحب الطلب
+                    merchantCode: currentMerchantCode,
                     shopNum,
                     shopLoc,
                     addresses,
                     status: "waiting",
                     createdAt: new Date()
                 });
-                alert("✅ تم نشر الطلب بنجاح!");
+                alert("✅ تم نشر الطلب.. يمكنك إضافة طلب آخر الآن");
                 resetForm();
-            } catch (e) { alert("خطأ في الاتصال"); }
+            } catch (e) { alert("خطأ في الشبكة"); }
         };
 
         window.acceptOrder = async function(orderId) {
             await updateDoc(doc(db, "orders", orderId), { status: "delivering" });
+            alert("تم قبول الطلب، توجه للمحل الآن 🚚");
         };
 
         window.finishOrder = async function(orderId) {
-            if(confirm("هل تم التوصيل؟")) {
+            if(confirm("تأكيد الإنهاء: هل تم تسليم الطلب؟ (سيحذف من شاشة التاجر)")) {
                 await deleteDoc(doc(db, "orders", orderId));
             }
         };
 
-        // تحديث البيانات اللحظي
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const deliveryList = document.getElementById('ordersList');
             const merchantList = document.getElementById('merchantOrdersMonitor');
@@ -82,93 +81,98 @@
                 const order = docSnap.data();
                 const id = docSnap.id;
                 
-                // 1. عرض كافة الطلبات للمناديب
+                // عرض للمندوب
                 let deliveryBtn = order.status === "waiting" ? 
                     `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>` :
-                    `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل (إنهاء)</button>`;
+                    `<button class="btn btn-finish" onclick="finishOrder('${id}')">إتمام التوصيل (إنهاء)</button>`;
                 
                 deliveryList.innerHTML += `
                     <div class="order-card">
-                        <strong>محل: ${order.shopNum}</strong>
+                        <strong>📦 محل رقم: ${order.shopNum}</strong>
                         <p>📍 <a href="${order.shopLoc}" target="_blank">موقع المحل</a></p>
                         <p>🏠 الوجهة: ${order.addresses.join(' | ')}</p>
                         ${deliveryBtn}
                     </div>
                 `;
 
-                // 2. عرض الطلبات الخاصة بالتاجر الحالي فقط (الفلتر)
+                // عرض للتاجر (طلباته هو فقط)
                 if (order.merchantCode === currentMerchantCode) {
-                    let statusBadge = order.status === "waiting" ? 
-                        `<span class="badge badge-waiting">⏳ في الانتظار</span>` : 
-                        `<span class="badge badge-delivering">🚚 استلمه مندوب</span>`;
+                    let statusInfo = order.status === "waiting" ? 
+                        `<span class="badge badge-waiting">⏳ في الانتظار...</span>` : 
+                        `<span class="badge badge-delivering">🚚 المندوب في الطريق إليك</span>`;
 
                     merchantList.innerHTML += `
                         <div class="monitor-item">
-                            <span>محل ${order.shopNum} - ${order.addresses[0]}</span>
-                            ${statusBadge}
+                            <div>
+                                <strong>محل ${order.shopNum}</strong><br>
+                                <small>${order.addresses[0]}</small>
+                            </div>
+                            ${statusInfo}
                         </div>
                     `;
                 }
             });
-            
-            if (merchantList.innerHTML === "") {
-                merchantList.innerHTML = "لا توجد طلبات جارية خاصة بك";
-            }
         });
     </script>
 
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; direction: rtl; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; direction: rtl; }
         .screen { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; flex-direction: column; align-items: center; }
         .active { display: flex; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
-        .choice-btn { width: 100%; padding: 20px; margin: 10px 0; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        .btn-merchant { background: #1a73e8; color: white; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; }
+        h1 { color: #1a73e8; font-size: 45px; margin: 10px 0; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn { cursor: pointer; border: none; border-radius: 10px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { cursor: pointer; border: none; border-radius: 8px; width: 100%; padding: 12px; font-weight: bold; margin-top: 10px; }
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept { background: #1a73e8; color: white; }
-        .btn-finish { background: #34a853; color: white; }
-        .order-card { background: white; padding: 15px; margin-top: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-right: 5px solid #1a73e8; width: 100%; text-align: right; }
-        .monitor-card { background: #eef2f7; padding: 15px; border-radius: 12px; width: 100%; max-width: 450px; text-align: right; }
-        .monitor-item { background: white; padding: 10px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 1px solid #ddd; }
-        .badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-        .badge-waiting { background: #fff3cd; color: #856404; }
-        .badge-delivering { background: #d4edda; color: #155724; }
-        .back { margin-top: 20px; color: #888; cursor: pointer; text-decoration: underline; }
+        .btn-finish { background: #d32f2f; color: white; }
+        
+        .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 12px; border-right: 6px solid #1a73e8; width: 100%; text-align: right; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; text-align: right; border: 1px solid #e0e0e0; }
+        .monitor-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .monitor-item:last-child { border: none; }
+        
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .badge-waiting { background: #fff3cd; color: #856404; animation: blink 1.5s infinite; }
+        .badge-delivering { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        @keyframes blink { 50% { opacity: 0.6; } }
+        .back { margin-top: 25px; color: #666; cursor: pointer; font-size: 14px; text-decoration: underline; }
     </style>
 </head>
 <body>
 
     <div id="entryPage" class="screen active" style="justify-content: center;">
         <div class="card">
-            <h1 style="font-size: 50px; margin: 0; color: #1a73e8;">EUX</h1>
-            <button class="choice-btn btn-merchant" onclick="checkMerchantCode()">🏬 دخول التجار</button>
-            <button class="choice-btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ دخول المناديب</button>
+            <h1>EUX</h1>
+            <p style="color: #666;">نظام الربط اللحظي بين التاجر والمندوب</p>
+            <button class="btn btn-main" style="margin-top: 20px;" onclick="checkMerchantCode()">🏬 دخول لوحة التجار</button>
+            <button class="btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ دخول لوحة المناديب</button>
         </div>
     </div>
 
     <div id="merchantPage" class="screen">
         <div class="card">
-            <h2>لوحة التاجر</h2>
+            <h2 style="margin: 0 0 20px 0;">إنشاء طلب جديد</h2>
             <input type="text" id="shopNumber" placeholder="رقم المحل">
-            <input type="text" id="shopLocation" placeholder="موقع المحل (رابط)">
+            <input type="text" id="shopLocation" placeholder="موقع المحل (رابط الخريطة)">
             <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
-            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
+            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب الآن</button>
             <div class="back" onclick="location.reload()">تسجيل الخروج</div>
         </div>
         
         <div class="monitor-card">
-            <h3 style="margin-top:0">📊 طلباتك الحالية فقط</h3>
-            <div id="merchantOrdersMonitor">جاري التحميل...</div>
+            <h3 style="margin-top:0; color: #333;">📊 حالة طلباتك الآن:</h3>
+            <div id="merchantOrdersMonitor">لا توجد طلبات جارية حالياً</div>
         </div>
     </div>
 
     <div id="deliveryPage" class="screen">
         <div style="width: 100%; max-width: 500px;">
-            <h2 style="text-align: center;">كافة طلبات EUX</h2>
-            <div id="ordersList"></div>
+            <h2 style="text-align: center;">الطلبات المتاحة للتوصيل</h2>
+            <div id="ordersList">جاري التحميل...</div>
             <div class="back" style="text-align: center; display: block;" onclick="goTo('entryPage')">العودة للرئيسية</div>
         </div>
     </div>
