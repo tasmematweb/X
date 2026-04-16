@@ -1,96 +1,129 @@
-{% comment %}
-  قالب مخصص لاستقبال طلبات المحلات - يتم وضعه في ملف جديد تحت اسم page.order-system.liquid
-{% endcomment %}
-
 <style>
-  .order-container { max-width: 600px; margin: 40px auto; font-family: 'Arial', sans-serif; direction: rtl; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-  .main-page { text-align: center; }
+  .order-container { max-width: 600px; margin: 20px auto; font-family: sans-serif; direction: rtl; }
+  .main-page { text-align: center; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
   .hidden { display: none; }
-  .form-group { margin-bottom: 20px; text-align: right; }
-  .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
-  .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-  .address-item { margin-bottom: 10px; }
-  .btn { cursor: pointer; padding: 12px 25px; border: none; border-radius: 6px; transition: 0.3s; font-size: 16px; font-weight: bold; }
-  .btn-primary { background-color: #2c3e50; color: white; width: 100%; }
-  .btn-add { background-color: #27ae60; color: white; margin-top: 10px; width: 100%; }
+  .form-group { margin-bottom: 15px; text-align: right; }
+  .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+  .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  .address-item { display: flex; gap: 5px; margin-bottom: 5px; }
+  .btn { cursor: pointer; padding: 10px 20px; border: none; border-radius: 5px; transition: 0.3s; }
+  .btn-primary { background-color: #2c3e50; color: white; }
+  .btn-add { background-color: #27ae60; color: white; margin-top: 5px; }
   .btn-confirm { background-color: #e67e22; color: white; width: 100%; margin-top: 20px; }
-  .success-message { color: #27ae60; padding: 20px; border: 1px solid #27ae60; border-radius: 6px; background: #f0fff4; }
+  .order-card { background: #f9f9f9; border-right: 5px solid #27ae60; padding: 15px; margin-top: 15px; text-align: right; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 </style>
 
 <div class="order-container">
-  
-  {% form 'contact' %}
-    {% if form.posted_successfully? %}
-      <div class="success-message">
-        <h3>تم إرسال طلبك بنجاح!</h3>
-        <p>سنقوم بمراجعة الطلب والتواصل معك قريباً.</p>
-        <button type="button" class="btn btn-primary" onclick="window.location.reload()">إنشاء طلب جديد</button>
+  <div id="mainPage" class="main-page">
+    <h2>قائمة الطلبات</h2>
+    <div id="ordersList">
+      <p>لا توجد طلبات حالية.</p>
+    </div>
+    <br><br>
+    <button class="btn btn-primary" onclick="showForm()">إنشاء طلب</button>
+  </div>
+
+  <div id="formPage" class="main-page hidden">
+    <h2>إستمارة الطلب</h2>
+    
+    <div class="form-group">
+      <label>رقم المحل</label>
+      <input type="text" id="shopNumber" placeholder="أدخل رقم المحل">
+    </div>
+
+    <div class="form-group">
+      <label>تحديد لوكيشن المحل</label>
+      <input type="text" id="shopLocation" placeholder="رابط الموقع أو العنوان">
+    </div>
+
+    <div class="form-group" id="addressContainer">
+      <label>عناوين التسليم</label>
+      <div class="address-item">
+        <input type="text" class="delivery-address" placeholder="عنوان التسليم 1">
       </div>
-    {% else %}
+    </div>
+    <button class="btn btn-add" onclick="addAddressField()">+ إضافة عنوان آخر</button>
 
-      <div id="mainPage" class="main-page">
-        <h2 style="margin-bottom: 30px;">نظام طلبات التوصيل</h2>
-        <img src="https://cdn.shopify.com/s/files/1/0000/0000/files/order-icon.png" alt="" style="width: 100px; opacity: 0.5;">
-        <p>مرحباً بك، يمكنك البدء بتسجيل طلباتك من هنا.</p>
-        <br>
-        <button type="button" class="btn btn-primary" onclick="showForm()">إضافة طلب جديد</button>
-      </div>
-
-      <div id="formPage" class="hidden">
-        <h2 style="text-align: center;">إستمارة الطلب</h2>
-        
-        <input type="hidden" name="contact[subject]" value="طلب جديد من المحل">
-
-        <div class="form-group">
-          <label>رقم المحل</label>
-          <input type="text" name="contact[shop_number]" id="shopNumber" placeholder="مثال: 105" required>
-        </div>
-
-        <div class="form-group">
-          <label>لوكيشن المحل (رابط الخريطة)</label>
-          <input type="url" name="contact[shop_location]" id="shopLocation" placeholder="https://maps.google.com/..." required>
-        </div>
-
-        <div class="form-group" id="addressContainer">
-          <label>عناوين التسليم</label>
-          <div class="address-item">
-            <input type="text" name="contact[address_1]" placeholder="العنوان الأول" required>
-          </div>
-        </div>
-        
-        <button type="button" class="btn btn-add" onclick="addAddressField()">+ إضافة عنوان تسليم آخر</button>
-        
-        <input type="hidden" name="contact[body]" id="allAddresses">
-
-        <button type="submit" class="btn btn-confirm" onclick="prepareData()">تأكيد وإرسال الطلب</button>
-      </div>
-
-    {% endif %}
-  {% endform %}
+    <button class="btn btn-confirm" onclick="confirmOrder()">تأكيد الطلب</button>
+  </div>
 </div>
 
 <script>
-  let addressCount = 1;
-
+  // وظيفة لإظهار الاستمارة
   function showForm() {
     document.getElementById('mainPage').classList.add('hidden');
     document.getElementById('formPage').classList.remove('hidden');
   }
 
+  // وظيفة لإضافة خانة عنوان جديدة
   function addAddressField() {
-    addressCount++;
     const container = document.getElementById('addressContainer');
     const div = document.createElement('div');
     div.className = 'address-item';
-    div.innerHTML = `<input type="text" name="contact[address_${addressCount}]" placeholder="عنوان إضافي رقم ${addressCount}">`;
+    div.innerHTML = `<input type="text" class="delivery-address" placeholder="عنوان إضافي">`;
     container.appendChild(div);
   }
 
-  function prepareData() {
-    // هذه الوظيفة تجمع العناوين في حقل واحد لضمان وصولها منظمة في الإيميل
-    const addresses = Array.from(document.querySelectorAll('#addressContainer input'))
-                           .map((input, index) => `العنوان ${index + 1}: ${input.value}`)
-                           .join(' | ');
-    document.getElementById('allAddresses').value = "تفاصيل العناوين: " + addresses;
+  // وظيفة تأكيد الطلب وحفظه
+  function confirmOrder() {
+    const shopNum = document.getElementById('shopNumber').value;
+    const shopLoc = document.getElementById('shopLocation').value;
+    const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(input => input.value).filter(v => v !== "");
+
+    if (!shopNum || !shopLoc || addresses.length === 0) {
+      alert("يرجى ملء كافة البيانات");
+      return;
+    }
+
+    // إنشاء كائن الطلب
+    const orderData = {
+      id: Date.now(),
+      shopNum,
+      shopLoc,
+      addresses
+    };
+
+    // حفظ في الذاكرة المؤقتة (Local Storage) لعرضه فوراً
+    let orders = JSON.parse(localStorage.getItem('myOrders') || "[]");
+    orders.unshift(orderData); // إضافة الطلب الجديد في البداية
+    localStorage.setItem('myOrders', JSON.stringify(orders));
+
+    // العودة للصفحة الرئيسية وتحديث القائمة
+    displayOrders();
+    document.getElementById('formPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+    
+    // إعادة تعيين النموذج
+    resetForm();
   }
+
+  function displayOrders() {
+    const list = document.getElementById('ordersList');
+    const orders = JSON.parse(localStorage.getItem('myOrders') || "[]");
+    
+    if (orders.length === 0) {
+      list.innerHTML = "<p>لا توجد طلبات حالية.</p>";
+      return;
+    }
+
+    list.innerHTML = orders.map(order => `
+      <div class="order-card">
+        <strong>رقم المحل:</strong> ${order.shopNum} <br>
+        <strong>الموقع:</strong> ${order.shopLoc} <br>
+        <strong>عناوين التسليم:</strong> ${order.addresses.join(' | ')}
+      </div>
+    `).join('');
+  }
+
+  function resetForm() {
+    document.getElementById('shopNumber').value = '';
+    document.getElementById('shopLocation').value = '';
+    document.getElementById('addressContainer').innerHTML = `
+      <label>عناوين التسليم</label>
+      <div class="address-item"><input type="text" class="delivery-address" placeholder="عنوان التسليم 1"></div>
+    `;
+  }
+
+  // تشغيل عرض الطلبات عند تحميل الصفحة
+  window.onload = displayOrders;
 </script>
