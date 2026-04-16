@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام Gooo - تاجر ومندوب</title>
+    <title>نظام EUX - التوصيل الذكي</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // إعدادات Firebase الخاصة بمشروعك
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
             authDomain: "gooo-a453b.firebaseapp.com",
@@ -22,6 +23,16 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
+
+        // وظيفة التحقق من كود التاجر
+        window.checkMerchantCode = function() {
+            const code = prompt("يرجى إدخال كود الدخول الخاص بالتاجر:");
+            if (code === "00000") {
+                goTo('merchantPage');
+            } else {
+                alert("الكود خاطئ! لا يمكنك الدخول.");
+            }
+        };
 
         // وظيفة التاجر: إرسال طلب
         window.confirmOrder = async function() {
@@ -39,10 +50,10 @@
                     shopNum,
                     shopLoc,
                     addresses,
-                    status: "waiting", // حالة الانتظار
+                    status: "waiting",
                     createdAt: new Date()
                 });
-                alert("✅ تم نشر الطلب للمناديب!");
+                alert("✅ تم نشر الطلب في نظام EUX بنجاح!");
                 resetForm();
                 goTo('entryPage');
             } catch (e) { alert("خطأ في الاتصال بالسحابة"); }
@@ -52,14 +63,14 @@
         window.acceptOrder = async function(orderId) {
             const orderRef = doc(db, "orders", orderId);
             await updateDoc(orderRef, { status: "delivering" });
-            alert("🚚 تم قبول الطلب، بالتوفيق في التوصيل!");
+            alert("🚚 تم قبول الطلب من قبل مندوب EUX");
         };
 
-        // وظيفة المندوب: إنهاء الطلب (حذفه بعد التوصيل)
+        // وظيفة المندوب: إنهاء الطلب
         window.finishOrder = async function(orderId) {
-            if(confirm("هل تم توصيل الطلب واستلام المبلغ؟")) {
+            if(confirm("هل تم توصيل الطلب بنجاح؟")) {
                 await deleteDoc(doc(db, "orders", orderId));
-                alert("✅ تم إنهاء الطلب بنجاح!");
+                alert("✅ تم إتمام المهمة.");
             }
         };
 
@@ -70,26 +81,25 @@
             snapshot.forEach((doc) => {
                 const order = doc.data();
                 const id = doc.id;
-                
                 let actionBtn = "";
                 let statusText = "";
                 
                 if (order.status === "waiting") {
-                    statusText = "<span style='color:orange'>⏳ في الانتظار</span>";
+                    statusText = "<span style='color:orange'>⏳ متاح للقبول</span>";
                     actionBtn = `<button class="btn btn-accept" onclick="acceptOrder('${id}')">قبول الطلب</button>`;
                 } else {
-                    statusText = "<span style='color:blue'>🚚 جاري التوصيل</span>";
-                    actionBtn = `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل (إنهاء)</button>`;
+                    statusText = "<span style='color:blue'>🚚 جاري التوصيل الآن</span>";
+                    actionBtn = `<button class="btn btn-finish" onclick="finishOrder('${id}')">تم التوصيل</button>`;
                 }
 
                 list.innerHTML += `
                     <div class="order-card">
                         <div style="display:flex; justify-content:space-between">
-                            <strong>محل رقم: ${order.shopNum}</strong>
+                            <strong>محل: ${order.shopNum}</strong>
                             ${statusText}
                         </div>
-                        <p>📍 <a href="${order.shopLoc}" target="_blank">موقع المحل</a></p>
-                        <p>🏠 العناوين: ${order.addresses.join(' | ')}</p>
+                        <p>📍 <a href="${order.shopLoc}" target="_blank">موقع المحل على الخريطة</a></p>
+                        <p>🏠 الوجهة: ${order.addresses.join(' | ')}</p>
                         ${actionBtn}
                     </div>
                 `;
@@ -98,56 +108,58 @@
     </script>
 
     <style>
-        body { font-family: 'Cairo', sans-serif; background: #f0f2f5; margin: 0; direction: rtl; }
+        body { font-family: 'Cairo', sans-serif; background: #f4f7f6; margin: 0; direction: rtl; }
         .screen { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; }
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
         /* صفحة الدخول */
-        .entry-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
-        .choice-btn { width: 100%; padding: 20px; margin: 10px 0; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .entry-card { background: white; padding: 40px 20px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; border-top: 8px solid #1a73e8; }
+        .choice-btn { width: 100%; padding: 18px; margin: 12px 0; border: none; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-merchant { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         
         /* النماذج والطلبات */
-        .content-card { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; padding: 12px; }
+        .content-card { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1, h2 { color: #2c3e50; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 1.5px solid #eee; border-radius: 10px; box-sizing: border-box; background: #fafafa; }
+        .btn { cursor: pointer; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; width: 100%; padding: 14px; transition: 0.2s; }
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept { background: #1a73e8; color: white; }
-        .btn-finish { background: #27ae60; color: white; }
+        .btn-finish { background: #34a853; color: white; }
         
-        .order-card { background: #fff; border-right: 6px solid #1a73e8; padding: 15px; margin-top: 15px; border-radius: 8px; text-align: right; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; }
-        .back-link { margin-top: 20px; color: #666; cursor: pointer; text-decoration: underline; }
+        .order-card { background: #fff; border-right: 6px solid #1a73e8; padding: 18px; margin-top: 15px; border-radius: 12px; text-align: right; box-shadow: 0 3px 10px rgba(0,0,0,0.05); width: 100%; }
+        .back-link { margin-top: 25px; color: #888; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
 
     <div id="entryPage" class="screen active">
         <div class="entry-card">
-            <h1 style="color: #1a73e8; margin-bottom: 30px;">Gooo</h1>
-            <button class="choice-btn btn-merchant" onclick="goTo('merchantPage')">🏬 محل التاجر</button>
+            <h1 style="letter-spacing: 3px; font-size: 40px; margin-bottom: 10px;">EUX</h1>
+            <p style="color: #666; margin-bottom: 30px;">نظام إدارة الطلبات والمناديب</p>
+            <button class="choice-btn btn-merchant" onclick="window.checkMerchantCode()">🏬 محل التاجر</button>
             <button class="choice-btn btn-delivery" onclick="goTo('deliveryPage')">🏍️ أنا المندوب</button>
         </div>
     </div>
 
     <div id="merchantPage" class="screen">
         <div class="content-card">
-            <h2>إنشاء طلب جديد</h2>
+            <h2>إضافة طلب جديد لـ EUX</h2>
             <input type="text" id="shopNumber" placeholder="رقم المحل">
-            <input type="text" id="shopLocation" placeholder="رابط موقع المحل (جوجل ماب)">
+            <input type="text" id="shopLocation" placeholder="رابط موقع المحل (Google Maps)">
             <div id="addressContainer">
-                <input type="text" class="delivery-address" placeholder="عنوان التسليم">
+                <input type="text" class="delivery-address" placeholder="عنوان الزبون">
             </div>
-            <button class="btn btn-confirm" onclick="window.confirmOrder()">نشر الطلب للمناديب</button>
-            <p class="back-link" onclick="goTo('entryPage')">العودة للرئيسية</p>
+            <button class="btn btn-confirm" onclick="window.confirmOrder()">تأكيد ونشر الطلب</button>
+            <p class="back-link" onclick="goTo('entryPage')">↩ العودة للرئيسية</p>
         </div>
     </div>
 
     <div id="deliveryPage" class="screen">
         <div style="width: 100%; max-width: 500px;">
-            <h2 style="text-align: center;">الطلبات المتاحة</h2>
-            <div id="ordersList">جاري تحميل الطلبات...</div>
-            <p class="back-link" style="text-align: center;" onclick="goTo('entryPage')">العودة للرئيسية</p>
+            <h2 style="text-align: center;">لوحة مناديب EUX</h2>
+            <div id="ordersList">جاري جلب الطلبات...</div>
+            <p class="back-link" style="text-align: center;" onclick="goTo('entryPage')">↩ العودة للرئيسية</p>
         </div>
     </div>
 
@@ -157,19 +169,11 @@
             document.getElementById(pageId).classList.add('active');
         }
 
-        function addAddressField() {
-            const input = document.createElement('input');
-            input.className = "delivery-address";
-            input.placeholder = "عنوان إضافي";
-            document.getElementById('addressContainer').appendChild(input);
-        }
-
         function resetForm() {
             document.getElementById('shopNumber').value = '';
             document.getElementById('shopLocation').value = '';
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان التسليم">';
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
         }
     </script>
 </body>
 </html>
-
