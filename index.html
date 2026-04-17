@@ -15,7 +15,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
@@ -37,46 +36,54 @@
         let map, marker;
         let lastWaitingCount = -1;
 
-        // وظيفة تفعيل الإشعارات للمندوب
+        // ملف الصوت للتنبيه
+        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+
         window.enableNotifications = async function() {
             if (!("Notification" in window)) {
                 alert("متصفحك لا يدعم الإشعارات");
                 return;
             }
             
-            // التحقق من الحالة الحالية للإذن
-            if (Notification.permission === "denied") {
-                alert("لقد قمت بحظر الإشعارات مسبقاً. يرجى الضغط على علامة (القفل 🔒) بجانب رابط الموقع في المتصفح وتفعيل 'الإشعارات' يدوياً.");
-                return;
-            }
-
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                alert("تم تفعيل التنبيهات بنجاح! ستصلك إشعارات بالطلبات الجديدة.");
-                new Notification("EUX System", { body: "نظام التنبيهات يعمل الآن", icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png" });
+                alert("تم تفعيل التنبيهات بنجاح!");
+                sendNotify("EUX System", "نظام التنبيهات يعمل الآن بصوت");
             } else {
-                alert("تم رفض الإذن. لكي تصلك الطلبات، يجب السماح بالإشعارات من إعدادات المتصفح.");
+                alert("يرجى تفعيل الإشعارات من إعدادات المتصفح (القفل بجانب الرابط).");
             }
         };
 
+        // دالة إرسال الإشعار مع الصوت
         function sendNotify(title, body) {
             if (Notification.permission === "granted") {
-                new Notification(title, {
+                // تشغيل الصوت
+                notificationSound.play().catch(e => console.log("Audio Error:", e));
+                
+                // إظهار الإشعار مع ميزة الاهتزاز والظهور المتكرر
+                const n = new Notification(title, {
                     body: body,
                     icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
-                    tag: "new-order" 
+                    tag: "new-order",
+                    renotify: true,
+                    requireInteraction: true, // يمنع اختفاء الإشعار تلقائياً حتى يضغط عليه المندوب
+                    vibrate: [200, 100, 200]
                 });
+
+                n.onclick = function() {
+                    window.focus();
+                    this.close();
+                };
             }
         }
 
-        // --- نظام التثبيت ---
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); deferredPrompt = e;
         });
         window.triggerInstall = function() {
             if (deferredPrompt) {
-                if(confirm("هل تريد إضافة نظام EUX إلى الشاشة الرئيسية؟")) {
+                if(confirm("هل تريد إضافة نظام EUX إلى الشاشة الرئيسية لضمان وصول الطلبات في الخلفية؟")) {
                     deferredPrompt.prompt(); deferredPrompt = null;
                 }
             }
@@ -88,9 +95,7 @@
         window.loginProcess = async function(type) {
             const inputId = type === 'merchant' ? 'merchantCodeInput' : 'deliveryCodeInput';
             const code = document.getElementById(inputId).value;
-            
             if (code === "011483") { setSession(code, 'admin', 'adminPage'); return; }
-
             const userDoc = await getDoc(doc(db, "users", code));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
@@ -131,7 +136,6 @@
             const role = document.getElementById('newRole').value;
             const phone = document.getElementById('newPhone').value;
             const loc = document.getElementById('newLoc').value;
-
             if(!code) return alert("أدخل الكود");
             await setDoc(doc(db, "users", code), { role, phone, location: loc });
             alert("تمت الإضافة بنجاح");
@@ -223,11 +227,11 @@
                 }
             });
 
+            // تحقق من الطلبات الجديدة لإرسال إشعار بصوت
             if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
-                sendNotify("EUX: طلب جديد متاح! 🏍️", "يوجد طلب جديد بانتظار مندوب. ادخل للتطبيق لقبوله.");
+                sendNotify("طلب جديد متاح! 🏍️", "يوجد طلب جديد في EUX بانتظارك.");
             }
             lastWaitingCount = currentWaiting;
-
             if(completedCount) completedCount.innerText = count;
         });
 
@@ -252,7 +256,8 @@
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-notify { background: #673ab7; color: white; margin-bottom: 10px; font-size: 14px; }
+        .btn-notify { background: #673ab7; color: white; margin-bottom: 10px; font-size: 14px; border: 2px solid #fff; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; z-index: 1; }
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
         .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
@@ -313,7 +318,7 @@
     <div id="deliveryPage" class="screen">
         <div class="card">
             <h2>الطلبات المتاحة</h2>
-            <button class="btn btn-notify" onclick="enableNotifications()">🔔 تفعيل تنبيهات الطلبات الجديدة</button>
+            <button class="btn btn-notify" onclick="enableNotifications()">🔔 تفعيل صوت وتنبيه الطلبات</button>
             <button class="btn btn-main" onclick="logout()">خروج</button>
         </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
