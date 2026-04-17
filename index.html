@@ -43,12 +43,19 @@
                 alert("متصفحك لا يدعم الإشعارات");
                 return;
             }
+            
+            // التحقق من الحالة الحالية للإذن
+            if (Notification.permission === "denied") {
+                alert("لقد قمت بحظر الإشعارات مسبقاً. يرجى الضغط على علامة (القفل 🔒) بجانب رابط الموقع في المتصفح وتفعيل 'الإشعارات' يدوياً.");
+                return;
+            }
+
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
                 alert("تم تفعيل التنبيهات بنجاح! ستصلك إشعارات بالطلبات الجديدة.");
                 new Notification("EUX System", { body: "نظام التنبيهات يعمل الآن", icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png" });
             } else {
-                alert("لقد رفضت الإذن. يرجى تفعيله من إعدادات المتصفح.");
+                alert("تم رفض الإذن. لكي تصلك الطلبات، يجب السماح بالإشعارات من إعدادات المتصفح.");
             }
         };
 
@@ -119,7 +126,6 @@
             }
         }
 
-        // --- لوحة التحكم: إدارة المستخدمين ---
         window.addUser = async function() {
             const code = document.getElementById('newCode').value;
             const role = document.getElementById('newRole').value;
@@ -217,7 +223,6 @@
                 }
             });
 
-            // منطق الإشعار للمندوب
             if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
                 sendNotify("EUX: طلب جديد متاح! 🏍️", "يوجد طلب جديد بانتظار مندوب. ادخل للتطبيق لقبوله.");
             }
