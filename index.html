@@ -31,21 +31,23 @@
         let userRole = localStorage.getItem('EUX_Role') || "";
         let lastWaitingCount = -1;
         let wakeLock = null;
-        let keepAliveInterval = null;
 
-        // توليد صوت التنبيه المزعج 10 ثواني
+        // وظيفة توليد صوت التنبيه المزعج لمدة 10 ثوانٍ
         function playAlarmSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const startTime = audioCtx.currentTime;
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
+
                 oscillator.type = 'sawtooth'; 
                 oscillator.frequency.setValueAtTime(880, startTime); 
+                
                 for(let i = 0; i < 10; i += 0.5) {
                     gainNode.gain.setValueAtTime(1, startTime + i);
                     gainNode.gain.setValueAtTime(0, startTime + i + 0.25);
                 }
+
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 oscillator.start();
@@ -53,27 +55,12 @@
             } catch (e) { console.log("Audio Error"); }
         }
 
-        // منع إغلاق المتصفح عبر تشغيل صوت صامت متكرر
-        function startKeepAlive() {
-            if (keepAliveInterval) return;
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            keepAliveInterval = setInterval(() => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0.01; // صوت شبه منعدم
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
-            }, 5000); // نبضة كل 5 ثواني لإبقاء المعالج يعمل
-        }
-
+        // تفعيل الإشعارات إجبارياً عند الدخول
         async function autoEnableNotifications() {
             if ("Notification" in window) {
                 const permission = await Notification.requestPermission();
                 if (permission === "granted" && userRole === 'delivery') {
                     requestWakeLock();
-                    startKeepAlive();
                 }
             }
         }
@@ -85,7 +72,11 @@
         function sendNotify(title, body) {
             if (Notification.permission === "granted") {
                 playAlarmSound();
-                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png", requireInteraction: true });
+                new Notification(title, {
+                    body: body,
+                    icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
+                    requireInteraction: true
+                });
                 if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
             }
         }
@@ -97,21 +88,23 @@
             const userDoc = await getDoc(doc(db, "users", code));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                if (userData.role === type) setSession(code, type, type === 'merchant' ? 'merchantPage' : 'deliveryPage');
-                else alert("هذا الكود غير مسجل لهذا النوع!");
-            } else alert("الكود خطأ!");
+                if (userData.role === type) {
+                    setSession(code, type, type === 'merchant' ? 'merchantPage' : 'deliveryPage');
+                } else { alert("هذا الكود غير مسجل لهذا النوع!"); }
+            } else { alert("الكود خطأ أو غير مسجل!"); }
         };
 
         async function setSession(code, role, page) {
             currentUserCode = code; userRole = role;
             localStorage.setItem('EUX_User_Code', code);
             localStorage.setItem('EUX_Role', role);
+            closeModal('loginModal'); closeModal('deliveryLoginModal');
             goTo(page);
             if(role === 'merchant') await loadMerchantData(code);
             if(role === 'delivery') autoEnableNotifications();
         }
 
-        window.logout = function() { clearInterval(keepAliveInterval); localStorage.clear(); location.reload(); };
+        window.logout = function() { localStorage.clear(); location.reload(); };
 
         async function loadMerchantData(code) {
             const userDoc = await getDoc(doc(db, "users", code));
@@ -135,8 +128,11 @@
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
-            await addDoc(ordersCol, { merchantCode: currentUserCode, deliveryCode: "", shopNum, shopLoc, addresses, status: "waiting", createdAt: new Date() });
-            resetForm(); document.getElementById('statusModal').style.display='flex';
+            await addDoc(ordersCol, {
+                merchantCode: currentUserCode, deliveryCode: "", 
+                shopNum, shopLoc, addresses, status: "waiting", createdAt: new Date()
+            });
+            resetForm(); showModal('statusModal');
         };
 
         window.acceptOrder = async function(id) {
@@ -144,7 +140,7 @@
         };
 
         window.finishOrder = async function(id) {
-            if(confirm("تم التسليم؟")) await updateDoc(doc(db, "orders", id), { status: "completed" });
+            if(confirm("تم التسليم؟")) { await updateDoc(doc(db, "orders", id), { status: "completed" }); }
         };
 
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
@@ -154,24 +150,49 @@
             const archList = document.getElementById('archivedOrdersList');
             const completedCount = document.getElementById('completedCount');
             if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
-            let count = 0; let currentWaiting = 0;
+            
+            let count = 0;
+            let currentWaiting = 0;
+
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
+                const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank">📍 خريطة</a>` : `• ${a}`).join('<br>');
+                
                 if (order.status === "completed") {
-                    count++;
-                    if(archList) archList.innerHTML += `<div class="monitor-item" style="display:block;"><strong>🏬 تاجر: ${order.merchantCode}</strong><br><strong>🏍️ مندوب: ${order.deliveryCode}</strong></div>`;
-                } else {
-                    if (order.status === "waiting") {
-                        currentWaiting++;
-                        if(dList) dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br><a href="${order.shopLoc}" target="_blank">📍 موقع المحل</a><p>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
-                    } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
-                        if(dList) dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br><p>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                    count++; 
+                    if(archList) archList.innerHTML += `<div class="monitor-item" style="display:block; text-align:right;">
+                        <strong>🏬 التاجر: ${order.merchantCode} (${order.shopNum})</strong><br>
+                        <strong>🏍️ المندوب: ${order.deliveryCode || 'غير معروف'}</strong><br>
+                        <small>📅 ${dateStr}</small>
+                    </div>`;
+                }
+
+                if (order.status === "waiting") {
+                    currentWaiting++;
+                    if(dList) {
+                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                    }
+                } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
+                    if(dList) {
+                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
+
+                if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
+                    mList.innerHTML += `<div class="monitor-item"><div><strong>${order.shopNum}</strong></div><span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
+                }
+                if(aList && order.status !== "completed") {
+                    aList.innerHTML += `<div class="monitor-item admin-card"><div><strong>📞 ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
+                }
             });
-            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) sendNotify("طلب جديد! 🏍️", "يوجد طلب متاح.");
+
+            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
+                sendNotify("طلب جديد متاح! 🏍️", "يوجد طلب جديد بانتظارك.");
+            }
             lastWaitingCount = currentWaiting;
             if(completedCount) completedCount.innerText = count;
         });
@@ -181,40 +202,110 @@
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); }
             else if (userRole === 'delivery') { goTo('deliveryPage'); autoEnableNotifications(); }
         };
+
+        window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
-        function goTo(pageId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(pageId).classList.add('active'); }
-        function resetForm() { document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">'; }
+        function goTo(pageId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+        function resetForm() {
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
+        }
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; margin: 0; direction: rtl; }
-        .top-bar { background: #1a73e8; color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f9; margin: 0; direction: rtl; }
+        .top-bar { background: #1a73e8; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; }
         .active { display: flex; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; text-align: center; }
-        .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; margin-top: 10px; }
+        h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
+        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
+        input[readonly] { background-color: #f9f9f9; color: #777; border: 1px dashed #ccc; }
+        .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
+        .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .monitor-item { border-bottom: 1px solid #f2f2f2; padding: 12px 0; text-align: right; }
-        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; width: 100%; }
-        .alert-active { background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; border: 1px solid #2e7d32; }
+        .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
+        .monitor-item { border-bottom: 1px solid #f2f2f2; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
+        .badge { padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .waiting { background: #fff3cd; color: #856404; }
+        .delivering { background: #d1ecf1; color: #0c5460; }
+        .admin-section { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; text-align: right; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 24px; text-align: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
+        .back { margin-top: 20px; color: #888; cursor: pointer; text-decoration: underline; }
+        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; width: 100%; }
+        .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
+        .alert-active { background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <div class="top-bar">نظام EUX - حماية الاتصال نشطة</div>
+
+    <div class="top-bar">نظام EUX للتوصيل الذكي</div>
+
     <div id="entryPage" class="screen active" style="justify-content: center;">
-        <div class="card"><h1>EUX</h1><button class="btn btn-main" onclick="document.getElementById('loginModal').style.display='flex'">🏬 تاجر</button><button class="btn btn-delivery" onclick="document.getElementById('deliveryLoginModal').style.display='flex'">🏍️ مندوب</button></div>
+        <div class="card">
+            <h1>EUX</h1>
+            <button class="btn btn-main" onclick="showModal('loginModal')">🏬 محل التاجر</button>
+            <button class="btn btn-delivery" onclick="showModal('deliveryLoginModal')">🏍️ انا المندوب</button>
+        </div>
     </div>
-    <div id="loginModal" class="modal-overlay"><div class="modal-content"><input type="password" id="merchantCodeInput" placeholder="كود التاجر"><button class="btn btn-main" onclick="loginProcess('merchant')">دخول</button></div></div>
-    <div id="deliveryLoginModal" class="modal-overlay"><div class="modal-content"><input type="password" id="deliveryCodeInput" placeholder="كود المندوب"><button class="btn btn-delivery" onclick="loginProcess('delivery')">دخول</button></div></div>
-    <div id="statusModal" class="modal-overlay"><div class="modal-content"><h3>تم التأكيد</h3><button class="btn btn-main" onclick="closeModal('statusModal')">موافق</button></div></div>
-    <div id="merchantPage" class="screen"><div class="card"><h2>طلب جديد</h2><input type="tel" id="shopNumber" readonly><input type="text" id="shopLocation" readonly><div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div><button class="btn btn-main" onclick="addAddressField()">➕ وجهة إضافية</button><button class="btn btn-delivery" style="background:#fb8c00;" onclick="confirmOrder()">نشر</button><div style="cursor:pointer;margin-top:10px;color:#999;" onclick="logout()">خروج</div></div></div>
-    <div id="deliveryPage" class="screen"><div class="card"><div class="alert-active">🔒 وضع الاتصال الدائم نشط (لا تغلق المتصفح)</div><button class="btn btn-main" onclick="logout()" style="background:#666">تسجيل خروج</button></div><div id="ordersList" style="width:100%;max-width:450px;"></div></div>
-    <div id="adminPage" class="screen"><div class="card"><h2>المكتملة: <span id="completedCount">0</span></h2><div id="archivedOrdersList" style="max-height:200px;overflow-y:auto;"></div><button class="btn btn-main" onclick="logout()">خروج</button></div></div>
+
+    <div id="loginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('loginModal')">
+        <div class="modal-content">
+            <input type="password" id="merchantCodeInput" placeholder="كود التاجر">
+            <button class="btn btn-main" onclick="loginProcess('merchant')">دخول</button>
+        </div>
+    </div>
+
+    <div id="deliveryLoginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('deliveryLoginModal')">
+        <div class="modal-content">
+            <input type="password" id="deliveryCodeInput" placeholder="كود المندوب">
+            <button class="btn btn-delivery" onclick="loginProcess('delivery')">دخول</button>
+        </div>
+    </div>
+
+    <div id="statusModal" class="modal-overlay" onclick="closeModal('statusModal')">
+        <div class="modal-content"><h3>تم تأكيد الطلب</h3><button class="btn btn-main" onclick="closeModal('statusModal')">موافق</button></div>
+    </div>
+
+    <div id="merchantPage" class="screen">
+        <div class="card">
+            <h2>طلب جديد</h2>
+            <input type="tel" id="shopNumber" placeholder="هاتف المحل" readonly>
+            <input type="text" id="shopLocation" placeholder="موقع المحل" readonly>
+            <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
+            <button class="btn btn-main" style="font-size: 12px;" onclick="addAddressField()">➕ وجهة إضافية</button>
+            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
+            <div class="back" onclick="logout()">خروج</div>
+        </div>
+        <div class="monitor-card" id="merchantOrdersMonitor"></div>
+    </div>
+
+    <div id="deliveryPage" class="screen">
+        <div class="card">
+            <div class="alert-active">🔔 نظام التنبيهات 10ث يعمل الآن تلقائياً</div>
+            <h2>الطلبات المتاحة</h2>
+            <button class="btn btn-main" onclick="logout()" style="background: #666; font-size: 12px; padding: 10px;">تسجيل خروج</button>
+        </div>
+        <div id="ordersList" style="width:100%; max-width:450px;"></div>
+    </div>
+
+    <div id="adminPage" class="screen">
+        <div class="card">
+            <h2>🎛️ الإدارة</h2>
+            <div class="stat-box" style="background:#e8f0fe; padding:15px; border-radius:12px; margin-bottom:10px;">✅ الطلبات المكتملة: <span id="completedCount">0</span></div>
+            <div id="adminArchive" style="margin-bottom:20px; max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px;">
+                <div id="archivedOrdersList"></div>
+            </div>
+            <button class="btn btn-main" onclick="logout()">خروج</button>
+        </div>
+        <div class="monitor-card"><h3>📈 الطلبات الجارية</h3><div id="adminOrdersMonitor"></div></div>
+    </div>
+
 </body>
 </html>
