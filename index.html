@@ -88,9 +88,15 @@
         });
         window.triggerInstall = function() {
             if (deferredPrompt) {
-                if(confirm("هل تريد إضافة EUX للشاشة الرئيسية لضمان وصول الطلبات في الخلفية؟")) {
-                    deferredPrompt.prompt(); deferredPrompt = null;
-                }
+                deferredPrompt.prompt(); 
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert("التطبيق مثبت بالفعل أو أن متصفحك لا يدعم التثبيت المباشر. يمكنك استخدام 'إضافة إلى الشاشة الرئيسية' من إعدادات المتصفح.");
             }
         };
 
@@ -331,7 +337,7 @@
                 <strong>🛠️ أدوات المندوب المساعدة:</strong><br>
                 1. اضغط على الزر البنفسجي أعلاه للسماح بالصوت.<br>
                 2. اترك الشاشة مفتوحة لضمان سماع التنبيه فوراً.<br>
-                <a href="#" style="color: #d48806; font-weight: bold; text-decoration: none; display: block; margin-top: 5px;">📥 تحميل أداة التثبيت للأندرويد (اختياري)</a>
+                <a href="javascript:void(0)" onclick="window.triggerInstall()" style="color: #d48806; font-weight: bold; text-decoration: none; display: block; margin-top: 5px;">📥 تثبيت النظام كـ تطبيق على الهاتف</a>
             </div>
 
             <button class="btn btn-main" onclick="logout()" style="background: #666;">خروج</button>
