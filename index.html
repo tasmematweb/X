@@ -14,7 +14,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
@@ -29,22 +29,21 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
+        const usersCol = collection(db, "users");
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
         let map, marker;
 
+        // --- نظام التثبيت ---
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+            e.preventDefault(); deferredPrompt = e;
         });
-
         window.triggerInstall = function() {
             if (deferredPrompt) {
-                if(confirm("هل تريد إضافة نظام EUX إلى الشاشة الرئيسية للوصول السريع؟")) {
-                    deferredPrompt.prompt();
-                    deferredPrompt = null;
+                if(confirm("هل تريد إضافة نظام EUX إلى الشاشة الرئيسية؟")) {
+                    deferredPrompt.prompt(); deferredPrompt = null;
                 }
             }
         };
@@ -52,21 +51,22 @@
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
-        window.loginProcess = function(type) {
+        window.loginProcess = async function(type) {
             const inputId = type === 'merchant' ? 'merchantCodeInput' : 'deliveryCodeInput';
             const code = document.getElementById(inputId).value;
             
-            if (type === 'merchant') {
-                if (code === "011483") setSession(code, 'admin', 'adminPage');
-                else if (["55555", "11111"].includes(code)) setSession(code, 'merchant', 'merchantPage');
-                else alert("كود التاجر خطأ!");
-            } else {
-                if (["5555", "1111"].includes(code)) setSession(code, 'delivery', 'deliveryPage');
-                else alert("كود المندوب خطأ!");
-            }
+            if (code === "011483") { setSession(code, 'admin', 'adminPage'); return; }
+
+            const userDoc = await getDoc(doc(db, "users", code));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.role === type) {
+                    setSession(code, type, type === 'merchant' ? 'merchantPage' : 'deliveryPage');
+                } else { alert("هذا الكود غير مسجل لهذا النوع!"); }
+            } else { alert("الكود خطأ أو غير مسجل!"); }
         };
 
-        function setSession(code, role, page) {
+        async function setSession(code, role, page) {
             currentUserCode = code;
             userRole = role;
             localStorage.setItem('EUX_User_Code', code);
@@ -74,49 +74,41 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
-            if(role === 'merchant') {
-                loadPersistentData(code);
-                initInteractiveMap();
-            }
+            if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
             setTimeout(() => { window.triggerInstall(); }, 1500);
         }
 
         window.logout = function() {
-            localStorage.removeItem('EUX_User_Code');
-            localStorage.removeItem('EUX_Role');
+            localStorage.clear();
             location.reload();
         };
 
-        window.loadPersistentData = function(code) {
-            const savedPhone = localStorage.getItem(`EUX_Phone_${code}`);
-            const savedLoc = localStorage.getItem(`EUX_Loc_${code}`);
-            
-            if(document.getElementById('shopNumber')) {
-                document.getElementById('shopNumber').value = savedPhone || "";
-                document.getElementById('shopLocation').value = savedLoc || "";
+        async function loadMerchantData(code) {
+            const userDoc = await getDoc(doc(db, "users", code));
+            if(userDoc.exists()) {
+                const data = userDoc.data();
+                document.getElementById('shopNumber').value = data.phone || "";
+                document.getElementById('shopLocation').value = data.location || "";
             }
-        };
+        }
 
-        window.savePersistentData = function() {
-            if(userRole === 'merchant') {
-                const phone = document.getElementById('shopNumber').value;
-                const loc = document.getElementById('shopLocation').value;
-                localStorage.setItem(`EUX_Phone_${currentUserCode}`, phone);
-                localStorage.setItem(`EUX_Loc_${currentUserCode}`, loc);
-            }
+        // --- لوحة التحكم: إدارة المستخدمين ---
+        window.addUser = async function() {
+            const code = document.getElementById('newCode').value;
+            const role = document.getElementById('newRole').value;
+            const phone = document.getElementById('newPhone').value;
+            const loc = document.getElementById('newLoc').value;
+
+            if(!code) return alert("أدخل الكود");
+            await setDoc(doc(db, "users", code), { role, phone, location: loc });
+            alert("تمت الإضافة بنجاح");
+            document.getElementById('newCode').value = "";
         };
 
         function initInteractiveMap() {
             setTimeout(() => {
                 if (map) return;
                 let startCoords = [30.0444, 31.2357];
-                const savedLoc = localStorage.getItem(`EUX_Loc_${currentUserCode}`);
-                if(savedLoc && savedLoc.includes('google.com/')) {
-                    try {
-                        const coordsPart = savedLoc.split('google.com/')[1].split(',');
-                        startCoords = [parseFloat(coordsPart[0]), parseFloat(parts[1])];
-                    } catch(e) {}
-                }
                 map = L.map('map').setView(startCoords, 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 marker = L.marker(startCoords, {draggable: false}).addTo(map);
@@ -126,8 +118,7 @@
         window.addAddressField = function() {
             const container = document.getElementById('addressContainer');
             const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'delivery-address';
+            input.type = 'text'; input.className = 'delivery-address';
             input.placeholder = 'عنوان الزبون الجديد أو رابط موقعه';
             container.appendChild(input);
         };
@@ -137,29 +128,19 @@
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
-            try {
-                await addDoc(ordersCol, {
-                    merchantCode: currentUserCode,
-                    deliveryCode: "", 
-                    shopNum, shopLoc, addresses,
-                    status: "waiting", createdAt: new Date()
-                });
-                resetForm();
-                showModal('statusModal');
-            } catch (e) { alert("خطأ اتصال"); }
+            await addDoc(ordersCol, {
+                merchantCode: currentUserCode, deliveryCode: "", 
+                shopNum, shopLoc, addresses, status: "waiting", createdAt: new Date()
+            });
+            resetForm(); showModal('statusModal');
         };
 
         window.acceptOrder = async function(id) {
-            await updateDoc(doc(db, "orders", id), { 
-                status: "delivering",
-                deliveryCode: currentUserCode 
-            });
+            await updateDoc(doc(db, "orders", id), { status: "delivering", deliveryCode: currentUserCode });
         };
 
         window.finishOrder = async function(id) {
-            if(confirm("تم التسليم؟")) {
-                await updateDoc(doc(db, "orders", id), { status: "completed" });
-            }
+            if(confirm("تم التسليم؟")) { await updateDoc(doc(db, "orders", id), { status: "completed" }); }
         };
 
         window.toggleArchive = function() {
@@ -173,56 +154,37 @@
             const aList = document.getElementById('adminOrdersMonitor');
             const archList = document.getElementById('archivedOrdersList');
             const completedCount = document.getElementById('completedCount');
-            
-            if(dList) dList.innerHTML = "";
-            if(mList) mList.innerHTML = "";
-            if(aList) aList.innerHTML = "";
-            if(archList) archList.innerHTML = "";
-
+            if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
             let count = 0;
-
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
-                const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank" class="map-link">📍 رابط الخريطة</a>` : `• ${a}`).join('<br>');
-
+                const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank">📍 خريطة</a>` : `• ${a}`).join('<br>');
                 if (order.status === "completed") {
-                    count++;
-                    if(archList) {
-                        archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div><span class="badge completed">تم التسليم</span></div>`;
-                    }
+                    count++; if(archList) archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div></div>`;
                 }
-
                 if(dList) {
-                    const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل (انطلاق)</a>`;
+                    const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
                     if (order.status === "waiting") {
-                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
                     } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
-                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><small>📅 ${dateStr}</small><br><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
-                    mList.innerHTML += `<div class="monitor-item"><div><strong>هاتف ${order.shopNum}</strong><br><small style="color:#777">${dateStr}</small></div> <span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
+                    mList.innerHTML += `<div class="monitor-item"><div><strong>${order.shopNum}</strong></div><span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
                 if(aList && order.status !== "completed") {
-                    aList.innerHTML += `<div class="monitor-item admin-card"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
+                    aList.innerHTML += `<div class="monitor-item admin-card"><div><strong>📞 ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
                 }
             });
             if(completedCount) completedCount.innerText = count;
         });
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const sw = `self.addEventListener('fetch', (e) => {});`;
-                const blob = new Blob([sw], {type: 'text/javascript'});
-                navigator.serviceWorker.register(URL.createObjectURL(blob));
-            });
-        }
-
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
-            else if (userRole === 'merchant') { goTo('merchantPage'); loadPersistentData(currentUserCode); initInteractiveMap(); }
+            else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
             else if (userRole === 'delivery') goTo('deliveryPage');
         };
     </script>
@@ -233,26 +195,24 @@
         .active { display: flex; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
-        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
-        input[readonly] { background-color: #f9f9f9; color: #999; cursor: not-allowed; border: 1px dashed #ccc; }
+        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
+        input[readonly] { background-color: #f9f9f9; color: #777; border: 1px dashed #ccc; cursor: not-allowed; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
-        #map { height: 250px; width: 100%; border-radius: 15px; margin: 10px 0; border: 1px solid #ddd; z-index: 1; }
-        .btn-gps-link { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 5px 0; font-size: 14px; border: 1px solid #1a73e8; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
-        .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 15px; border-right: 6px solid #1a73e8; box-shadow: 0 4px 12px rgba(0,0,0,0.03); width: 100%; text-align: right; box-sizing: border-box;}
+        #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; z-index: 1; }
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
-        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .badge.waiting { background: #fff3cd; color: #856404; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
-        .badge.delivering { background: #d1ecf1; color: #0c5460; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
-        .badge.completed { background: #d4edda; color: #155724; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
+        .badge { padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .waiting { background: #fff3cd; color: #856404; }
+        .delivering { background: #d1ecf1; color: #0c5460; }
         .stat-box { background: #e8f0fe; padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 15px; border: 1px solid #1a73e8; }
+        .admin-section { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; text-align: right; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
         .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
     </style>
 </head>
@@ -268,74 +228,64 @@
 
     <div id="loginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('loginModal')">
         <div class="modal-content">
-            <input type="password" id="merchantCodeInput" placeholder="••••••">
-            <button class="btn btn-main" onclick="loginProcess('merchant')">تسجيل الدخول</button>
-            <div class="back" onclick="closeModal('loginModal')">إلغاء</div>
+            <input type="password" id="merchantCodeInput" placeholder="كود التاجر">
+            <button class="btn btn-main" onclick="loginProcess('merchant')">دخول</button>
         </div>
     </div>
 
     <div id="deliveryLoginModal" class="modal-overlay" onclick="if(event.target == this) closeModal('deliveryLoginModal')">
         <div class="modal-content">
-            <input type="password" id="deliveryCodeInput" placeholder="رقم سري المندوب">
-            <button class="btn btn-delivery" onclick="loginProcess('delivery')">تسجيل الدخول</button>
-            <div class="back" onclick="closeModal('deliveryLoginModal')">إلغاء</div>
+            <input type="password" id="deliveryCodeInput" placeholder="كود المندوب">
+            <button class="btn btn-delivery" onclick="loginProcess('delivery')">دخول</button>
         </div>
     </div>
 
     <div id="statusModal" class="modal-overlay" onclick="closeModal('statusModal')">
-        <div class="modal-content">
-            <button class="btn btn-main" onclick="closeModal('statusModal')" style="margin-top: 0;">تم تأكيد الطلب</button>
-        </div>
+        <div class="modal-content"><h3>تم تأكيد الطلب</h3><button class="btn btn-main" onclick="closeModal('statusModal')">موافق</button></div>
     </div>
 
     <div id="merchantPage" class="screen">
         <div class="card">
-            <h2>إنشاء طلب جديد</h2>
-            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل" readonly>
-            <input type="text" id="shopLocation" placeholder="رابط الموقع" readonly>
-            
-            <p style="font-size: 12px; color: #777;">موقع المحل ثابت (يتم تحديده من الإدارة)</p>
+            <h2>طلب جديد</h2>
+            <input type="tel" id="shopNumber" placeholder="هاتف المحل" readonly>
+            <input type="text" id="shopLocation" placeholder="موقع المحل" readonly>
             <div id="map"></div>
-            
-            <div id="addressContainer" style="width: 100%;">
-                <input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">
-            </div>
-            <button class="btn btn-add" onclick="addAddressField()">➕ وجهة أخرى لنفس الطلب</button>
-            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الآن</button>
-            <div class="back" onclick="logout()">تسجيل الخروج</div>
+            <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
+            <button class="btn btn-main" style="font-size: 12px;" onclick="addAddressField()">➕ وجهة إضافية</button>
+            <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
+            <div class="back" onclick="logout()">خروج</div>
         </div>
         <div class="monitor-card" id="merchantOrdersMonitor"></div>
     </div>
 
     <div id="deliveryPage" class="screen">
-        <div class="card">
-            <h2>لوحة المناديب</h2>
-            <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
-        </div>
+        <div class="card"><h2>الطلبات المتاحة</h2><button class="btn btn-main" onclick="logout()">خروج</button></div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
     </div>
 
     <div id="adminPage" class="screen">
         <div class="card">
-            <h2>🎛️ لوحة التحكم العامة</h2>
+            <h2>🎛️ الإدارة</h2>
+            <div class="stat-box" onclick="toggleArchive()">✅ مكتمل: <span id="completedCount">0</span></div>
             
-            <div class="stat-box" onclick="toggleArchive()">
-                <strong>✅ الطلبات المكتملة: </strong>
-                <span id="completedCount">0</span>
-                <br><small>(اضغط لعرض الأرشيف)</small>
-            </div>
-
-            <div id="adminArchive" style="display:none; margin-bottom:20px; max-height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; border-radius:10px;">
-                <h4 style="margin-top:0">📜 الأرشيف التاريخي</h4>
+            <div id="adminArchive" style="display:none; margin-bottom:10px; max-height:200px; overflow-y:auto;">
                 <div id="archivedOrdersList"></div>
             </div>
 
-            <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
+            <div class="admin-section">
+                <h4>➕ إضافة مستخدم (تاجر/مندوب)</h4>
+                <input type="text" id="newCode" placeholder="كود الدخول (الباسورد)">
+                <select id="newRole">
+                    <option value="merchant">تاجر</option>
+                    <option value="delivery">مندوب</option>
+                </select>
+                <input type="tel" id="newPhone" placeholder="هاتف التاجر (اختياري)">
+                <input type="text" id="newLoc" placeholder="رابط موقع التاجر (اختياري)">
+                <button class="btn btn-delivery" onclick="addUser()">حفظ المستخدم</button>
+            </div>
+            <button class="btn btn-main" onclick="logout()">خروج</button>
         </div>
-        <div class="monitor-card">
-            <h3>📈 الجارية الآن</h3>
-            <div id="adminOrdersMonitor"></div>
-        </div>
+        <div class="monitor-card"><h3>📈 الطلبات الجارية</h3><div id="adminOrdersMonitor"></div></div>
     </div>
 
     <script>
@@ -344,7 +294,7 @@
             document.getElementById(pageId).classList.add('active');
         }
         function resetForm() {
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">';
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
         }
     </script>
 </body>
