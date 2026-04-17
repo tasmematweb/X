@@ -1,9 +1,3 @@
-المشكلة لا تزال قائمة لأن المتصفح "ينام" بمجرد قفل الشاشة. الحل **البسيط والنهائي** بدون تعقيدات برمجية هو استخدام "خدعة" تقنية تجبر الهاتف على اعتبار موقعك تطبيقاً نشطاً.
-إليك الكود بعد تعديله ليتضمن **3 حلول تقنية مدمجة** تعمل تلقائياً:
- 1. **مشغل صوتي صامت (Audio Loop):** سيعمل في الخلفية ليمنع المتصفح من إيقاف الكود.
- 2. **تحديث تلقائي للنظام:** يجبر الصفحة على البقاء متصلة بـ Firebase.
- 3. **تبسيط واجهة المندوب:** زر واحد واضح لحل كل المشاكل.
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -13,7 +7,6 @@
     
     <link rel="manifest" href="data:application/manifest+json,{'name':'EUX System','short_name':'EUX','start_url':'.','display':'standalone','background_color':'#ffffff','theme_color':'#1a73e8','icons':[{'src':'https://cdn-icons-png.flaticon.com/512/1162/1162250.png','sizes':'512x512','type':'image/png'}]}">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -39,30 +32,20 @@
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
-        let map, marker;
         let lastWaitingCount = -1;
         let wakeLock = null;
 
-        // ملف صوتي صامت جداً لإبقاء المتصفح يعمل في الخلفية
         const bgKeepAlive = new Audio('https://github.com/anars/blank-audio/raw/master/10-seconds-of-silence.mp3');
         bgKeepAlive.loop = true;
 
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', e => self.skipWaiting());
-                self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-            `;
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(blob));
-        }
-
-        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+        // تنبيه مزعج وطويل (6 ثواني)
+        const notificationSound = new Audio('https://p.nomads.co/sounds/alarm.mp3'); 
 
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    bgKeepAlive.play().catch(() => {}); // بدء الصوت الصامت
+                    bgKeepAlive.play().catch(() => {});
                 }
             } catch (err) { console.log(err.message); }
         }
@@ -71,16 +54,21 @@
             if (!("Notification" in window)) return alert("متصفحك لا يدعم الإشعارات");
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                notificationSound.play().catch(() => {});
+                playAlert();
                 bgKeepAlive.play().catch(() => {});
-                sendNotify("EUX System", "نظام التنبيهات والصوت نشط الآن");
                 if(userRole === 'delivery') requestWakeLock();
             }
         };
 
+        function playAlert() {
+            notificationSound.currentTime = 0;
+            notificationSound.play();
+            setTimeout(() => { notificationSound.pause(); }, 6000);
+        }
+
         function sendNotify(title, body) {
             if (Notification.permission === "granted") {
-                notificationSound.play().catch(e => console.log(e));
+                playAlert();
                 const n = new Notification(title, {
                     body: body,
                     icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
@@ -88,26 +76,10 @@
                     renotify: true,
                     requireInteraction: true
                 });
-                if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
                 n.onclick = () => { window.focus(); n.close(); };
             }
         }
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); deferredPrompt = e;
-        });
-        window.triggerInstall = function() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt(); 
-                deferredPrompt = null;
-            } else {
-                alert("التطبيق مثبت بالفعل أو استخدم خيار 'إضافة للشاشة الرئيسية' من إعدادات المتصفح.");
-            }
-        };
-
-        window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
-        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
         window.loginProcess = async function(type) {
             const inputId = type === 'merchant' ? 'merchantCodeInput' : 'deliveryCodeInput';
@@ -130,7 +102,7 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
-            if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
+            if(role === 'merchant') await loadMerchantData(code);
             if(role === 'delivery') requestWakeLock();
         }
 
@@ -157,18 +129,7 @@
             if(!code) return alert("أدخل الكود");
             await setDoc(doc(db, "users", code), { role, phone, location: loc });
             alert("تمت الإضافة بنجاح");
-            document.getElementById('newCode').value = "";
         };
-
-        function initInteractiveMap() {
-            setTimeout(() => {
-                if (map) return;
-                let startCoords = [30.0444, 31.2357];
-                map = L.map('map').setView(startCoords, 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                marker = L.marker(startCoords, {draggable: false}).addTo(map);
-            }, 500);
-        }
 
         window.addAddressField = function() {
             const container = document.getElementById('addressContainer');
@@ -198,11 +159,6 @@
             if(confirm("تم التسليم؟")) { await updateDoc(doc(db, "orders", id), { status: "completed" }); }
         };
 
-        window.toggleArchive = function() {
-            const archive = document.getElementById('adminArchive');
-            archive.style.display = archive.style.display === 'none' ? 'block' : 'none';
-        };
-
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const dList = document.getElementById('ordersList');
             const mList = document.getElementById('merchantOrdersMonitor');
@@ -221,7 +177,12 @@
                 const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank">📍 خريطة</a>` : `• ${a}`).join('<br>');
                 
                 if (order.status === "completed") {
-                    count++; if(archList) archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div></div>`;
+                    count++; 
+                    if(archList) archList.innerHTML += `<div class="monitor-item" style="display:block; text-align:right;">
+                        <strong>🏬 التاجر: ${order.merchantCode} (${order.shopNum})</strong><br>
+                        <strong>🏍️ المندوب: ${order.deliveryCode || 'غير معروف'}</strong><br>
+                        <small>📅 ${dateStr}</small>
+                    </div>`;
                 }
 
                 if (order.status === "waiting") {
@@ -254,44 +215,55 @@
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
-            else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
+            else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); }
             else if (userRole === 'delivery') { goTo('deliveryPage'); requestWakeLock(); }
         };
+
+        window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
+        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
+        function goTo(pageId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+        function resetForm() {
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
+        }
     </script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f9; margin: 0; direction: rtl; }
+        .top-bar { background: #1a73e8; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; }
         .active { display: flex; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
         input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
-        input[readonly] { background-color: #f9f9f9; color: #777; border: 1px dashed #ccc; cursor: not-allowed; }
+        input[readonly] { background-color: #f9f9f9; color: #777; border: 1px dashed #ccc; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-notify { background: #673ab7; color: white; margin-bottom: 15px; font-size: 14px; border: 4px solid #fff; box-shadow: 0 0 15px rgba(103,58,183,0.4); animation: pulse 2s infinite; }
+        .btn-notify { background: #673ab7; color: white; margin-bottom: 15px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
-        #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; z-index: 1; }
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
-        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
+        .monitor-item { border-bottom: 1px solid #f2f2f2; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
         .badge { padding: 5px 10px; border-radius: 8px; font-size: 12px; }
         .waiting { background: #fff3cd; color: #856404; }
         .delivering { background: #d1ecf1; color: #0c5460; }
-        .stat-box { background: #e8f0fe; padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 15px; border: 1px solid #1a73e8; }
         .admin-section { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; text-align: right; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
-        .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
-        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; }
+        .back { margin-top: 20px; color: #888; cursor: pointer; text-decoration: underline; }
+        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; width: 100%; }
         .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
-        .helper-card { background: #fffbe6; border: 1px dashed #ffe58f; padding: 15px; border-radius: 15px; margin-top: 15px; font-size: 13px; color: #856404; line-height: 1.6; }
+        .helper-card { background: #fffbe6; border: 1px dashed #ffe58f; padding: 15px; border-radius: 15px; margin-top: 15px; font-size: 13px; color: #856404; }
     </style>
 </head>
 <body>
+
+    <div class="top-bar">نظام EUX للتوصيل الذكي</div>
 
     <div id="entryPage" class="screen active" style="justify-content: center;">
         <div class="card">
@@ -324,7 +296,6 @@
             <h2>طلب جديد</h2>
             <input type="tel" id="shopNumber" placeholder="هاتف المحل" readonly>
             <input type="text" id="shopLocation" placeholder="موقع المحل" readonly>
-            <div id="map"></div>
             <div id="addressContainer"><input type="text" class="delivery-address" placeholder="عنوان الزبون"></div>
             <button class="btn btn-main" style="font-size: 12px;" onclick="addAddressField()">➕ وجهة إضافية</button>
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
@@ -336,16 +307,7 @@
     <div id="deliveryPage" class="screen">
         <div class="card">
             <h2>الطلبات المتاحة</h2>
-            <button class="btn btn-notify" onclick="enableNotifications()">⚡ تفعيل جرس التنبيه القوي</button>
-            
-            <div class="helper-card">
-                <strong>💡 لضمان وصول الطلب فوراً:</strong><br>
-                1. اضغط الزر البنفسجي أعلاه (ضروري جداً).<br>
-                2. ثبت النظام عبر الزر بالأسفل.<br>
-                3. تأكد من رفع صوت الهاتف.<br>
-                <a href="javascript:void(0)" onclick="window.triggerInstall()" style="color: #1a73e8; font-weight: bold; text-decoration: underline; display: block; margin-top: 8px;">📲 تثبيت EUX كـ تطبيق (حل نهائي)</a>
-            </div>
-
+            <button class="btn btn-notify" onclick="enableNotifications()">⚡ تفعيل جرس التنبيه (6 ثواني)</button>
             <button class="btn btn-main" onclick="logout()" style="background: #666; font-size: 12px; padding: 10px;">تسجيل خروج</button>
         </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
@@ -354,9 +316,9 @@
     <div id="adminPage" class="screen">
         <div class="card">
             <h2>🎛️ الإدارة</h2>
-            <div class="stat-box" onclick="toggleArchive()">✅ مكتمل: <span id="completedCount">0</span></div>
+            <div class="stat-box" style="background:#e8f0fe; padding:15px; border-radius:12px; margin-bottom:10px;">✅ الطلبات المكتملة: <span id="completedCount">0</span></div>
             
-            <div id="adminArchive" style="display:none; margin-bottom:10px; max-height:200px; overflow-y:auto;">
+            <div id="adminArchive" style="margin-bottom:20px; max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px;">
                 <div id="archivedOrdersList"></div>
             </div>
 
@@ -377,15 +339,10 @@
     </div>
 
     <script>
-        function goTo(pageId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-        }
-        function resetForm() {
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
-        }
+        // إعداد إضافي للتأكد من بقاء الصوت يعمل
+        document.addEventListener('click', () => {
+            bgKeepAlive.play().catch(()=>{});
+        }, {once: true});
     </script>
 </body>
 </html>
-
-```
