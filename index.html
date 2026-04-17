@@ -34,7 +34,6 @@
         let userRole = localStorage.getItem('EUX_Role') || "";
         let map, marker;
 
-        // --- كود تثبيت التطبيق ---
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -49,7 +48,6 @@
                 }
             }
         };
-        // -----------------------
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
@@ -80,7 +78,6 @@
                 loadPersistentData(code);
                 initInteractiveMap();
             }
-            // استدعاء طلب التثبيت عند الدخول
             setTimeout(() => { window.triggerInstall(); }, 1500);
         }
 
@@ -112,39 +109,17 @@
         function initInteractiveMap() {
             setTimeout(() => {
                 if (map) return;
-                
                 let startCoords = [30.0444, 31.2357];
                 const savedLoc = localStorage.getItem(`EUX_Loc_${currentUserCode}`);
-                
                 if(savedLoc && savedLoc.includes('google.com/')) {
                     try {
                         const coordsPart = savedLoc.split('google.com/')[1].split(',');
                         startCoords = [parseFloat(coordsPart[0]), parseFloat(parts[1])];
                     } catch(e) {}
                 }
-
                 map = L.map('map').setView(startCoords, 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-                marker = L.marker(startCoords, {draggable: true}).addTo(map);
-
-                marker.on('dragend', function (e) {
-                    const lat = marker.getLatLng().lat;
-                    const lng = marker.getLatLng().lng;
-                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
-                    document.getElementById('shopLocation').value = url;
-                    savePersistentData();
-                });
-
-                if(!savedLoc) {
-                    map.locate({setView: true, maxZoom: 16});
-                    map.on('locationfound', (e) => {
-                        marker.setLatLng(e.latlng);
-                        const url = `https://www.google.com/maps?q=${e.latlng.lat},${e.latlng.lng}`;
-                        document.getElementById('shopLocation').value = url;
-                        savePersistentData();
-                    });
-                }
+                marker = L.marker(startCoords, {draggable: false}).addTo(map);
             }, 500);
         }
 
@@ -161,11 +136,7 @@
             const shopNum = document.getElementById('shopNumber').value;
             const shopLoc = document.getElementById('shopLocation').value;
             const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
-            
             if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
-
-            savePersistentData();
-
             try {
                 await addDoc(ordersCol, {
                     merchantCode: currentUserCode,
@@ -200,16 +171,28 @@
             const dList = document.getElementById('ordersList');
             const mList = document.getElementById('merchantOrdersMonitor');
             const aList = document.getElementById('adminOrdersMonitor');
+            const archList = document.getElementById('archivedOrdersList');
+            const completedCount = document.getElementById('completedCount');
             
             if(dList) dList.innerHTML = "";
             if(mList) mList.innerHTML = "";
             if(aList) aList.innerHTML = "";
+            if(archList) archList.innerHTML = "";
+
+            let count = 0;
 
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank" class="map-link">📍 رابط الخريطة</a>` : `• ${a}`).join('<br>');
+
+                if (order.status === "completed") {
+                    count++;
+                    if(archList) {
+                        archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div><span class="badge completed">تم التسليم</span></div>`;
+                    }
+                }
 
                 if(dList) {
                     const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل (انطلاق)</a>`;
@@ -226,9 +209,9 @@
                     aList.innerHTML += `<div class="monitor-item admin-card"><div style="text-align:right"><strong>📞 هاتف: ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
                 }
             });
+            if(completedCount) completedCount.innerText = count;
         });
 
-        // تسجيل Service Worker وهمي لمتطلبات المتصفح لتثبيت التطبيق
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 const sw = `self.addEventListener('fetch', (e) => {});`;
@@ -251,6 +234,7 @@
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
         input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
+        input[readonly] { background-color: #f9f9f9; color: #999; cursor: not-allowed; border: 1px dashed #ccc; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
@@ -258,19 +242,17 @@
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
         .btn-add { background: #eee; color: #555; font-size: 13px; padding: 8px; margin-bottom: 10px;}
-        
         #map { height: 250px; width: 100%; border-radius: 15px; margin: 10px 0; border: 1px solid #ddd; z-index: 1; }
         .btn-gps-link { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 5px 0; font-size: 14px; border: 1px solid #1a73e8; }
-        .map-link { color: #34a853; font-weight: bold; text-decoration: underline; }
-
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
         .order-card { background: white; padding: 15px; margin-top: 12px; border-radius: 15px; border-right: 6px solid #1a73e8; box-shadow: 0 4px 12px rgba(0,0,0,0.03); width: 100%; text-align: right; box-sizing: border-box;}
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
         .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .admin-card { background: #fdfdfd; border-radius: 10px; margin-bottom: 5px; padding: 10px; border: 1px solid #eee; }
         .badge.waiting { background: #fff3cd; color: #856404; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
         .badge.delivering { background: #d1ecf1; color: #0c5460; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .badge.completed { background: #d4edda; color: #155724; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        .stat-box { background: #e8f0fe; padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 15px; border: 1px solid #1a73e8; }
         .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
     </style>
 </head>
@@ -309,10 +291,11 @@
     <div id="merchantPage" class="screen">
         <div class="card">
             <h2>إنشاء طلب جديد</h2>
-            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل" onchange="savePersistentData()">
-            <p style="font-size: 12px; color: #1a73e8;">اسحب الدبوس لتحديد الموقع أو الصق رابطاً يدوياً بالأسفل:</p>
+            <input type="tel" id="shopNumber" placeholder="رقم هاتف المحل" readonly>
+            <input type="text" id="shopLocation" placeholder="رابط الموقع" readonly>
+            
+            <p style="font-size: 12px; color: #777;">موقع المحل ثابت (يتم تحديده من الإدارة)</p>
             <div id="map"></div>
-            <input type="text" id="shopLocation" placeholder="رابط الموقع" onchange="savePersistentData()">
             
             <div id="addressContainer" style="width: 100%;">
                 <input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">
@@ -335,6 +318,18 @@
     <div id="adminPage" class="screen">
         <div class="card">
             <h2>🎛️ لوحة التحكم العامة</h2>
+            
+            <div class="stat-box" onclick="toggleArchive()">
+                <strong>✅ الطلبات المكتملة: </strong>
+                <span id="completedCount">0</span>
+                <br><small>(اضغط لعرض الأرشيف)</small>
+            </div>
+
+            <div id="adminArchive" style="display:none; margin-bottom:20px; max-height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; border-radius:10px;">
+                <h4 style="margin-top:0">📜 الأرشيف التاريخي</h4>
+                <div id="archivedOrdersList"></div>
+            </div>
+
             <button class="btn btn-main" onclick="logout()">تسجيل الخروج</button>
         </div>
         <div class="monitor-card">
