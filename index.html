@@ -15,6 +15,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // استيراد خدمات الإشعارات
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
@@ -30,10 +32,35 @@
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
         const usersCol = collection(db, "users");
+        
+        // إعداد الإشعارات
+        const messaging = getMessaging(app);
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
         let map, marker;
+        let lastWaitingCount = -1; // لمراقبة الطلبات الجديدة
+
+        // طلب إذن الإشعارات من المتصفح
+        async function requestNotificationPermission() {
+            if ("Notification" in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    console.log("Notification permission granted.");
+                }
+            }
+        }
+
+        // دالة إرسال الإشعار للمندوب
+        function notifyDelivery(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/1162/1162250.png',
+                    dir: 'rtl'
+                });
+            }
+        }
 
         // --- نظام التثبيت ---
         let deferredPrompt;
@@ -74,6 +101,8 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
+            
+            if(role === 'delivery') { await requestNotificationPermission(); }
             if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
             setTimeout(() => { window.triggerInstall(); }, 1500);
         }
@@ -155,23 +184,33 @@
             const archList = document.getElementById('archivedOrdersList');
             const completedCount = document.getElementById('completedCount');
             if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
+            
             let count = 0;
+            let currentWaitingCount = 0;
+
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
                 const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank">📍 خريطة</a>` : `• ${a}`).join('<br>');
+                
                 if (order.status === "completed") {
                     count++; if(archList) archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div></div>`;
                 }
-                if(dList) {
-                    const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
-                    if (order.status === "waiting") {
+
+                if (order.status === "waiting") {
+                    currentWaitingCount++;
+                    if(dList) {
+                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
                         dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
-                    } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
+                    }
+                } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
+                    if(dList) {
+                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
                         dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
+
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
                     mList.innerHTML += `<div class="monitor-item"><div><strong>${order.shopNum}</strong></div><span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
@@ -179,13 +218,20 @@
                     aList.innerHTML += `<div class="monitor-item admin-card"><div><strong>📞 ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
                 }
             });
+
+            // تفعيل الإشعار عند وجود طلب جديد للمندوب
+            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaitingCount > lastWaitingCount) {
+                notifyDelivery("EUX: طلب جديد!", "يوجد طلب جديد متاح الآن في قائمة الطلبات.");
+            }
+            lastWaitingCount = currentWaitingCount;
+
             if(completedCount) completedCount.innerText = count;
         });
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
-            else if (userRole === 'delivery') goTo('deliveryPage');
+            else if (userRole === 'delivery') { goTo('deliveryPage'); requestNotificationPermission(); }
         };
     </script>
 
@@ -214,6 +260,8 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
         .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
+        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
     </style>
 </head>
 <body>
