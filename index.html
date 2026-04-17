@@ -36,51 +36,132 @@
         let map, marker;
         let lastWaitingCount = -1;
         let wakeLock = null;
+        let notificationsEnabled = false;
+        let audioContext = null;
 
-        // تسجيل Service Worker للعمل في الخلفية
+        // تسجيل Service Worker للإشعارات في الخلفية
         if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', e => self.skipWaiting());
-                self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-            `;
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            navigator.serviceWorker.register(URL.createObjectURL(blob));
+            navigator.serviceWorker.register(
+                URL.createObjectURL(new Blob([`
+                    self.addEventListener('install', () => self.skipWaiting());
+                    self.addEventListener('activate', () => self.clients.claim());
+                    self.addEventListener('notificationclick', event => {
+                        event.notification.close();
+                        event.waitUntil(clients.matchAll({type: 'window'}).then(clientList => {
+                            for (let client of clientList) {
+                                if (client.url.includes(self.registration.scope) && 'focus' in client) {
+                                    return client.focus();
+                                }
+                            }
+                            if (clients.openWindow) return clients.openWindow(self.registration.scope);
+                        }));
+                    });
+                `], {type: 'application/javascript'}))
+            ).catch(err => console.log('SW registration failed:', err));
         }
 
-        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+        // تهيئة الصوت
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        // تشغيل صوت الإشعار
+        function playNotificationSound() {
+            try {
+                initAudio();
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            } catch (e) {
+                console.log('Audio error:', e);
+            }
+        }
 
         // دالة لمنع خمول المعالج والشاشة (للمناديب)
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        if (userRole === 'delivery' && document.visibilityState === 'visible') {
+                            requestWakeLock();
+                        }
+                    });
                 }
             } catch (err) { console.log(err.message); }
         }
 
+        // تفعيل الإشعارات
         window.enableNotifications = async function() {
-            if (!("Notification" in window)) return alert("متصفحك لا يدعم الإشعارات");
+            if (!("Notification" in window)) {
+                alert("متصفحك لا يدعم الإشعارات");
+                return;
+            }
+            
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                notificationSound.play().catch(() => {});
-                sendNotify("EUX System", "نظام التنبيهات نشط الآن");
-                if(userRole === 'delivery') requestWakeLock();
+                notificationsEnabled = true;
+                localStorage.setItem('EUX_Notifications_Enabled', 'true');
+                
+                // تشغيل صوت للتأكيد
+                playNotificationSound();
+                
+                // إرسال إشعار تجريبي
+                sendNotification("✅ نظام EUX نشط", "سيتم تنبيهك عند وصول طلبات جديدة حتى في الخلفية", true);
+                
+                if(userRole === 'delivery') {
+                    requestWakeLock();
+                }
+                
+                alert("✅ تم تفعيل الإشعارات بنجاح! ستتلقى تنبيهات حتى عند إغلاق التطبيق.");
+            } else {
+                alert("❌ يجب السماح بالإشعارات لاستقبال الطلبات");
             }
         };
 
-        function sendNotify(title, body) {
+        // إرسال إشعار (تعمل في الخلفية)
+        function sendNotification(title, body, requireInteraction = true) {
+            if (!notificationsEnabled && Notification.permission === "granted") {
+                notificationsEnabled = true;
+            }
+            
             if (Notification.permission === "granted") {
-                notificationSound.play().catch(e => console.log(e));
-                const n = new Notification(title, {
+                // تشغيل الصوت
+                playNotificationSound();
+                
+                // اهتزاز الجهاز إذا كان مدعوماً
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                
+                // إنشاء الإشعار
+                const options = {
                     body: body,
                     icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
+                    badge: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
                     tag: "new-order",
                     renotify: true,
-                    requireInteraction: true,
-                    vibrate: [200, 100, 200]
-                });
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                n.onclick = () => { window.focus(); n.close(); };
+                    requireInteraction: requireInteraction,
+                    vibrate: [200, 100, 200],
+                    silent: false,
+                    timestamp: Date.now()
+                };
+                
+                // استخدام Service Worker للإشعار إذا كان متاحاً
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, options);
+                    });
+                } else {
+                    // استخدام Notification API مباشرة
+                    const notification = new Notification(title, options);
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                }
             }
         }
 
@@ -117,17 +198,33 @@
             userRole = role;
             localStorage.setItem('EUX_User_Code', code);
             localStorage.setItem('EUX_Role', role);
+            
+            // استعادة حالة الإشعارات
+            notificationsEnabled = localStorage.getItem('EUX_Notifications_Enabled') === 'true';
+            if (notificationsEnabled && Notification.permission !== "granted") {
+                notificationsEnabled = false;
+            }
+            
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
             if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
-            if(role === 'delivery') requestWakeLock();
+            if(role === 'delivery') {
+                requestWakeLock();
+                // إذا كانت الإشعارات مفعلة مسبقاً
+                if (notificationsEnabled) {
+                    setTimeout(() => {
+                        sendNotification("🏍️ أنت متصل الآن", "النظام جاهز لاستقبال الطلبات", false);
+                    }, 1000);
+                }
+            }
             setTimeout(() => { window.triggerInstall(); }, 1500);
         }
 
         window.logout = function() {
             if(wakeLock) wakeLock.release();
-            localStorage.clear();
+            localStorage.removeItem('EUX_User_Code');
+            localStorage.removeItem('EUX_Role');
             location.reload();
         };
 
@@ -194,6 +291,7 @@
             archive.style.display = archive.style.display === 'none' ? 'block' : 'none';
         };
 
+        // مراقبة الطلبات مع إشعارات محسنة
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
             const dList = document.getElementById('ordersList');
             const mList = document.getElementById('merchantOrdersMonitor');
@@ -204,6 +302,7 @@
             
             let count = 0;
             let currentWaiting = 0;
+            let newOrdersDetected = false;
 
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
@@ -236,17 +335,47 @@
                 }
             });
 
-            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
-                sendNotify("طلب جديد متاح! 🏍️", "يوجد طلب جديد في EUX بانتظارك.");
+            // إرسال إشعار عند وجود طلبات جديدة للمناديب (حتى في الخلفية)
+            if (userRole === 'delivery' && notificationsEnabled) {
+                if (lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
+                    const newOrdersCount = currentWaiting - lastWaitingCount;
+                    const message = newOrdersCount === 1 ? 
+                        "يوجد طلب جديد بانتظارك! 🏍️" : 
+                        `يوجد ${newOrdersCount} طلبات جديدة بانتظارك! 🏍️`;
+                    
+                    sendNotification("🆕 طلب جديد في EUX", message, true);
+                }
             }
+            
             lastWaitingCount = currentWaiting;
             if(completedCount) completedCount.innerText = count;
         });
 
+        // الحفاظ على الاتصال في الخلفية
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (userRole === 'delivery') {
+                    requestWakeLock();
+                }
+            }
+        });
+
         window.onload = function() {
+            // استعادة حالة الإشعارات
+            notificationsEnabled = localStorage.getItem('EUX_Notifications_Enabled') === 'true';
+            
             if (userRole === 'admin') goTo('adminPage');
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
-            else if (userRole === 'delivery') { goTo('deliveryPage'); requestWakeLock(); }
+            else if (userRole === 'delivery') { 
+                goTo('deliveryPage'); 
+                requestWakeLock();
+                // تفعيل تلقائي للإشعارات إذا كانت مخزنة
+                if (notificationsEnabled && Notification.permission === "granted") {
+                    setTimeout(() => {
+                        sendNotification("🏍️ أهلاً بك", "أنت متصل وجاهز لاستقبال الطلبات", false);
+                    }, 500);
+                }
+            }
         };
     </script>
 
