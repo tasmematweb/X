@@ -34,37 +34,36 @@
 
         // وظيفة توليد صوت التنبيه المزعج لمدة 10 ثوانٍ
         function playAlarmSound() {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const duration = 10000; // 10 ثوانٍ
-            const startTime = audioCtx.currentTime;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const startTime = audioCtx.currentTime;
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
 
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
+                oscillator.type = 'sawtooth'; 
+                oscillator.frequency.setValueAtTime(880, startTime); 
+                
+                for(let i = 0; i < 10; i += 0.5) {
+                    gainNode.gain.setValueAtTime(1, startTime + i);
+                    gainNode.gain.setValueAtTime(0, startTime + i + 0.25);
+                }
 
-            oscillator.type = 'sawtooth'; 
-            oscillator.frequency.setValueAtTime(880, startTime); 
-            
-            // نبضات صوتية متقطعة Beep Beep
-            for(let i = 0; i < 10; i += 0.5) {
-                gainNode.gain.setValueAtTime(1, startTime + i);
-                gainNode.gain.setValueAtTime(0, startTime + i + 0.25);
-            }
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            oscillator.start();
-            oscillator.stop(startTime + 10);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(startTime + 10);
+            } catch (e) { console.log("Audio Error"); }
         }
 
-        window.enableNotifications = async function() {
-            if (!("Notification" in window)) return alert("متصفحك لا يدعم الإشعارات");
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                playAlarmSound();
-                if(userRole === 'delivery') requestWakeLock();
+        // تفعيل الإشعارات إجبارياً عند الدخول
+        async function autoEnableNotifications() {
+            if ("Notification" in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted" && userRole === 'delivery') {
+                    requestWakeLock();
+                }
             }
-        };
+        }
 
         async function requestWakeLock() {
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
@@ -102,7 +101,7 @@
             closeModal('loginModal'); closeModal('deliveryLoginModal');
             goTo(page);
             if(role === 'merchant') await loadMerchantData(code);
-            if(role === 'delivery') requestWakeLock();
+            if(role === 'delivery') autoEnableNotifications();
         }
 
         window.logout = function() { localStorage.clear(); location.reload(); };
@@ -201,7 +200,7 @@
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); }
-            else if (userRole === 'delivery') { goTo('deliveryPage'); requestWakeLock(); }
+            else if (userRole === 'delivery') { goTo('deliveryPage'); autoEnableNotifications(); }
         };
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
@@ -230,8 +229,6 @@
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-notify { background: #673ab7; color: white; margin-bottom: 15px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
         .monitor-item { border-bottom: 1px solid #f2f2f2; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
         .badge { padding: 5px 10px; border-radius: 8px; font-size: 12px; }
@@ -243,6 +240,7 @@
         .back { margin-top: 20px; color: #888; cursor: pointer; text-decoration: underline; }
         .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; width: 100%; }
         .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
+        .alert-active { background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -290,8 +288,8 @@
 
     <div id="deliveryPage" class="screen">
         <div class="card">
+            <div class="alert-active">🔔 نظام التنبيهات 10ث يعمل الآن تلقائياً</div>
             <h2>الطلبات المتاحة</h2>
-            <button class="btn btn-notify" onclick="enableNotifications()">⚡ تفعيل جرس التنبيه (10 ثواني)</button>
             <button class="btn btn-main" onclick="logout()" style="background: #666; font-size: 12px; padding: 10px;">تسجيل خروج</button>
         </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
