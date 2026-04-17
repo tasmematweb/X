@@ -15,7 +15,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // استيراد خدمات الإشعارات
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = {
@@ -32,32 +31,33 @@
         const db = getFirestore(app);
         const ordersCol = collection(db, "orders");
         const usersCol = collection(db, "users");
-        
-        // إعداد الإشعارات
-        const messaging = getMessaging(app);
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
         let map, marker;
-        let lastWaitingCount = -1; // لمراقبة الطلبات الجديدة
+        let lastWaitingCount = -1;
 
-        // طلب إذن الإشعارات من المتصفح
-        async function requestNotificationPermission() {
-            if ("Notification" in window) {
-                const permission = await Notification.requestPermission();
-                if (permission === "granted") {
-                    console.log("Notification permission granted.");
-                }
+        // وظيفة تفعيل الإشعارات للمندوب
+        window.enableNotifications = async function() {
+            if (!("Notification" in window)) {
+                alert("متصفحك لا يدعم الإشعارات");
+                return;
             }
-        }
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                alert("تم تفعيل التنبيهات بنجاح! ستصلك إشعارات بالطلبات الجديدة.");
+                new Notification("EUX System", { body: "نظام التنبيهات يعمل الآن", icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png" });
+            } else {
+                alert("لقد رفضت الإذن. يرجى تفعيله من إعدادات المتصفح.");
+            }
+        };
 
-        // دالة إرسال الإشعار للمندوب
-        function notifyDelivery(title, body) {
+        function sendNotify(title, body) {
             if (Notification.permission === "granted") {
                 new Notification(title, {
                     body: body,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/1162/1162250.png',
-                    dir: 'rtl'
+                    icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
+                    tag: "new-order" 
                 });
             }
         }
@@ -101,8 +101,6 @@
             closeModal('loginModal');
             closeModal('deliveryLoginModal');
             goTo(page);
-            
-            if(role === 'delivery') { await requestNotificationPermission(); }
             if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
             setTimeout(() => { window.triggerInstall(); }, 1500);
         }
@@ -186,7 +184,7 @@
             if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
             
             let count = 0;
-            let currentWaitingCount = 0;
+            let currentWaiting = 0;
 
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
@@ -199,7 +197,7 @@
                 }
 
                 if (order.status === "waiting") {
-                    currentWaitingCount++;
+                    currentWaiting++;
                     if(dList) {
                         const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
                         dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
@@ -219,11 +217,11 @@
                 }
             });
 
-            // تفعيل الإشعار عند وجود طلب جديد للمندوب
-            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaitingCount > lastWaitingCount) {
-                notifyDelivery("EUX: طلب جديد!", "يوجد طلب جديد متاح الآن في قائمة الطلبات.");
+            // منطق الإشعار للمندوب
+            if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
+                sendNotify("EUX: طلب جديد متاح! 🏍️", "يوجد طلب جديد بانتظار مندوب. ادخل للتطبيق لقبوله.");
             }
-            lastWaitingCount = currentWaitingCount;
+            lastWaitingCount = currentWaiting;
 
             if(completedCount) completedCount.innerText = count;
         });
@@ -231,7 +229,7 @@
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
-            else if (userRole === 'delivery') { goTo('deliveryPage'); requestNotificationPermission(); }
+            else if (userRole === 'delivery') goTo('deliveryPage');
         };
     </script>
 
@@ -249,6 +247,7 @@
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
+        .btn-notify { background: #673ab7; color: white; margin-bottom: 10px; font-size: 14px; }
         #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; z-index: 1; }
         .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
         .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
@@ -260,7 +259,7 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
         .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
-        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; }
         .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
     </style>
 </head>
@@ -307,7 +306,11 @@
     </div>
 
     <div id="deliveryPage" class="screen">
-        <div class="card"><h2>الطلبات المتاحة</h2><button class="btn btn-main" onclick="logout()">خروج</button></div>
+        <div class="card">
+            <h2>الطلبات المتاحة</h2>
+            <button class="btn btn-notify" onclick="enableNotifications()">🔔 تفعيل تنبيهات الطلبات الجديدة</button>
+            <button class="btn btn-main" onclick="logout()">خروج</button>
+        </div>
         <div id="ordersList" style="width:100%; max-width:450px;"></div>
     </div>
 
