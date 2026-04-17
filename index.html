@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام EUX المتكامل</title>
     
+    <link rel="manifest" href="data:application/manifest+json,{'name':'EUX System','short_name':'EUX','start_url':'.','display':'standalone','background_color':'#ffffff','theme_color':'#1a73e8','icons':[{'src':'https://cdn-icons-png.flaticon.com/512/1162/1162250.png','sizes':'512x512','type':'image/png'}]}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -29,6 +33,23 @@
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
         let map, marker;
+
+        // --- كود تثبيت التطبيق ---
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        window.triggerInstall = function() {
+            if (deferredPrompt) {
+                if(confirm("هل تريد إضافة نظام EUX إلى الشاشة الرئيسية للوصول السريع؟")) {
+                    deferredPrompt.prompt();
+                    deferredPrompt = null;
+                }
+            }
+        };
+        // -----------------------
 
         window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
         window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
@@ -59,6 +80,8 @@
                 loadPersistentData(code);
                 initInteractiveMap();
             }
+            // استدعاء طلب التثبيت عند الدخول
+            setTimeout(() => { window.triggerInstall(); }, 1500);
         }
 
         window.logout = function() {
@@ -93,7 +116,6 @@
                 let startCoords = [30.0444, 31.2357];
                 const savedLoc = localStorage.getItem(`EUX_Loc_${currentUserCode}`);
                 
-                // محاولة استخراج الإحداثيات من الرابط المحفوظ إذا وجد
                 if(savedLoc && savedLoc.includes('google.com/')) {
                     try {
                         const coordsPart = savedLoc.split('google.com/')[1].split(',');
@@ -114,7 +136,6 @@
                     savePersistentData();
                 });
 
-                // إذا لم يكن هناك موقع محفوظ، حاول العثور على موقع المستخدم الحالي
                 if(!savedLoc) {
                     map.locate({setView: true, maxZoom: 16});
                     map.on('locationfound', (e) => {
@@ -206,6 +227,15 @@
                 }
             });
         });
+
+        // تسجيل Service Worker وهمي لمتطلبات المتصفح لتثبيت التطبيق
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const sw = `self.addEventListener('fetch', (e) => {});`;
+                const blob = new Blob([sw], {type: 'text/javascript'});
+                navigator.serviceWorker.register(URL.createObjectURL(blob));
+            });
+        }
 
         window.onload = function() {
             if (userRole === 'admin') goTo('adminPage');
@@ -319,7 +349,6 @@
             document.getElementById(pageId).classList.add('active');
         }
         function resetForm() {
-            // نمسح فقط العناوين الإضافية ونترك الهاتف والموقع ثابتين كما طلبت
             document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون الجديد أو رابط موقعه">';
         }
     </script>
