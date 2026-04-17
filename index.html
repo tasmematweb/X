@@ -14,7 +14,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAwVWLAlf89839Zvzip6cebQf4XOm9mFgI",
@@ -33,29 +33,32 @@
 
         let currentUserCode = localStorage.getItem('EUX_User_Code') || "";
         let userRole = localStorage.getItem('EUX_Role') || "";
-        let map, marker;
+        let map, marker, wakeLock = null;
         let lastWaitingCount = -1;
-        let wakeLock = null;
 
-        // تسجيل Service Worker للعمل في الخلفية
+        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+
+        // --- نظام الـ Service Worker المدمج للعمل في الخلفية ---
         if ('serviceWorker' in navigator) {
             const swCode = `
                 self.addEventListener('install', e => self.skipWaiting());
                 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                self.addEventListener('notificationclick', e => {
+                    e.notification.close();
+                    e.waitUntil(clients.openWindow('/'));
+                });
             `;
             const blob = new Blob([swCode], { type: 'application/javascript' });
             navigator.serviceWorker.register(URL.createObjectURL(blob));
         }
 
-        const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-
-        // دالة لمنع خمول المعالج والشاشة (للمناديب)
+        // دالة منع خمول الهاتف
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
-            } catch (err) { console.log(err.message); }
+            } catch (err) { console.log("WakeLock Error:", err.message); }
         }
 
         window.enableNotifications = async function() {
@@ -63,41 +66,33 @@
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
                 notificationSound.play().catch(() => {});
-                sendNotify("EUX System", "نظام التنبيهات نشط الآن");
+                sendNotify("EUX System", "نظام التنبيهات نشط الآن في الخلفية");
                 if(userRole === 'delivery') requestWakeLock();
+            } else {
+                alert("يجب السماح بالإشعارات من إعدادات المتصفح.");
             }
         };
 
         function sendNotify(title, body) {
             if (Notification.permission === "granted") {
-                notificationSound.play().catch(e => console.log(e));
-                const n = new Notification(title, {
-                    body: body,
-                    icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
-                    tag: "new-order",
-                    renotify: true,
-                    requireInteraction: true,
-                    vibrate: [200, 100, 200]
+                // تشغيل الصوت
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(e => console.log("Audio play failed"));
+
+                // إرسال الإشعار عبر نظام التشغيل (يظهر في الخلفية)
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
+                        badge: "https://cdn-icons-png.flaticon.com/512/1162/1162250.png",
+                        vibrate: [500, 200, 500],
+                        tag: "new-order",
+                        renotify: true,
+                        requireInteraction: true
+                    });
                 });
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                n.onclick = () => { window.focus(); n.close(); };
             }
         }
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); deferredPrompt = e;
-        });
-        window.triggerInstall = function() {
-            if (deferredPrompt) {
-                if(confirm("هل تريد إضافة EUX للشاشة الرئيسية لضمان وصول الطلبات في الخلفية؟")) {
-                    deferredPrompt.prompt(); deferredPrompt = null;
-                }
-            }
-        };
-
-        window.showModal = function(id) { document.getElementById(id).style.display = 'flex'; };
-        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
 
         window.loginProcess = async function(type) {
             const inputId = type === 'merchant' ? 'merchantCodeInput' : 'deliveryCodeInput';
@@ -113,85 +108,18 @@
         };
 
         async function setSession(code, role, page) {
-            currentUserCode = code;
-            userRole = role;
+            currentUserCode = code; userRole = role;
             localStorage.setItem('EUX_User_Code', code);
             localStorage.setItem('EUX_Role', role);
-            closeModal('loginModal');
-            closeModal('deliveryLoginModal');
+            closeModal('loginModal'); closeModal('deliveryLoginModal');
             goTo(page);
             if(role === 'merchant') { await loadMerchantData(code); initInteractiveMap(); }
             if(role === 'delivery') requestWakeLock();
-            setTimeout(() => { window.triggerInstall(); }, 1500);
         }
 
         window.logout = function() {
             if(wakeLock) wakeLock.release();
-            localStorage.clear();
-            location.reload();
-        };
-
-        async function loadMerchantData(code) {
-            const userDoc = await getDoc(doc(db, "users", code));
-            if(userDoc.exists()) {
-                const data = userDoc.data();
-                document.getElementById('shopNumber').value = data.phone || "";
-                document.getElementById('shopLocation').value = data.location || "";
-            }
-        }
-
-        window.addUser = async function() {
-            const code = document.getElementById('newCode').value;
-            const role = document.getElementById('newRole').value;
-            const phone = document.getElementById('newPhone').value;
-            const loc = document.getElementById('newLoc').value;
-            if(!code) return alert("أدخل الكود");
-            await setDoc(doc(db, "users", code), { role, phone, location: loc });
-            alert("تمت الإضافة بنجاح");
-            document.getElementById('newCode').value = "";
-        };
-
-        function initInteractiveMap() {
-            setTimeout(() => {
-                if (map) return;
-                let startCoords = [30.0444, 31.2357];
-                map = L.map('map').setView(startCoords, 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                marker = L.marker(startCoords, {draggable: false}).addTo(map);
-            }, 500);
-        }
-
-        window.addAddressField = function() {
-            const container = document.getElementById('addressContainer');
-            const input = document.createElement('input');
-            input.type = 'text'; input.className = 'delivery-address';
-            input.placeholder = 'عنوان الزبون الجديد أو رابط موقعه';
-            container.appendChild(input);
-        };
-
-        window.confirmOrder = async function() {
-            const shopNum = document.getElementById('shopNumber').value;
-            const shopLoc = document.getElementById('shopLocation').value;
-            const addresses = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v !== "");
-            if (!shopNum || !shopLoc || addresses.length === 0) return alert("أكمل البيانات");
-            await addDoc(ordersCol, {
-                merchantCode: currentUserCode, deliveryCode: "", 
-                shopNum, shopLoc, addresses, status: "waiting", createdAt: new Date()
-            });
-            resetForm(); showModal('statusModal');
-        };
-
-        window.acceptOrder = async function(id) {
-            await updateDoc(doc(db, "orders", id), { status: "delivering", deliveryCode: currentUserCode });
-        };
-
-        window.finishOrder = async function(id) {
-            if(confirm("تم التسليم؟")) { await updateDoc(doc(db, "orders", id), { status: "completed" }); }
-        };
-
-        window.toggleArchive = function() {
-            const archive = document.getElementById('adminArchive');
-            archive.style.display = archive.style.display === 'none' ? 'block' : 'none';
+            localStorage.clear(); location.reload();
         };
 
         onSnapshot(query(ordersCol, orderBy("createdAt", "desc")), (snapshot) => {
@@ -200,7 +128,9 @@
             const aList = document.getElementById('adminOrdersMonitor');
             const archList = document.getElementById('archivedOrdersList');
             const completedCount = document.getElementById('completedCount');
-            if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
+            
+            if(dList) dList.innerHTML = ""; if(mList) mList.innerHTML = ""; 
+            if(aList) aList.innerHTML = ""; if(archList) archList.innerHTML = "";
             
             let count = 0;
             let currentWaiting = 0;
@@ -208,34 +138,29 @@
             snapshot.forEach((docSnap) => {
                 const order = docSnap.data();
                 const id = docSnap.id;
-                const dateStr = order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString('ar-EG') : "غير محدد";
                 const addrHTML = order.addresses.map(a => a.startsWith('http') ? `• <a href="${a}" target="_blank">📍 خريطة</a>` : `• ${a}`).join('<br>');
                 
                 if (order.status === "completed") {
-                    count++; if(archList) archList.innerHTML += `<div class="monitor-item"><div><strong>📞 ${order.shopNum}</strong><br><small>${dateStr}</small></div></div>`;
+                    count++;
                 }
 
                 if (order.status === "waiting") {
                     currentWaiting++;
                     if(dList) {
-                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
-                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 ${order.shopNum}</strong><br><a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a><p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-accept-green" onclick="acceptOrder('${id}')">قبول الطلب</button></div>`;
                     }
                 } else if (order.status === "delivering" && order.deliveryCode === currentUserCode) {
                     if(dList) {
-                        const shopLocBtn = `<a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a>`;
-                        dList.innerHTML += `<div class="order-card"><strong>📞 هاتف: ${order.shopNum}</strong><br>${shopLocBtn}<p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
+                        dList.innerHTML += `<div class="order-card"><strong>📞 ${order.shopNum}</strong><br><a href="${order.shopLoc}" target="_blank" class="btn-gps-link">📍 موقع المحل</a><p>🏠 الوجهات:<br>${addrHTML}</p><button class="btn btn-finish-red" onclick="finishOrder('${id}')">إنهاء الطلب</button></div>`;
                     }
                 }
 
                 if(mList && order.merchantCode === currentUserCode && order.status !== "completed") {
                     mList.innerHTML += `<div class="monitor-item"><div><strong>${order.shopNum}</strong></div><span class="badge ${order.status}">${order.status === 'waiting' ? '⏳ انتظار' : '🚚 بالطريق'}</span></div>`;
                 }
-                if(aList && order.status !== "completed") {
-                    aList.innerHTML += `<div class="monitor-item admin-card"><div><strong>📞 ${order.shopNum}</strong><br><small>🔑 تاجر: ${order.merchantCode}</small></div><span class="badge ${order.status}">${order.status === 'waiting' ? 'انتظار' : 'توصيل'}</span></div>`;
-                }
             });
 
+            // التنبيه في الخلفية
             if (userRole === 'delivery' && lastWaitingCount !== -1 && currentWaiting > lastWaitingCount) {
                 sendNotify("طلب جديد متاح! 🏍️", "يوجد طلب جديد في EUX بانتظارك.");
             }
@@ -243,7 +168,37 @@
             if(completedCount) completedCount.innerText = count;
         });
 
-        window.onload = function() {
+        // دوال مساعدة إضافية
+        window.showModal = id => document.getElementById(id).style.display = 'flex';
+        window.closeModal = id => document.getElementById(id).style.display = 'none';
+        window.goTo = id => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        };
+        async function loadMerchantData(c) {
+            const d = await getDoc(doc(db, "users", c));
+            if(d.exists()) {
+                document.getElementById('shopNumber').value = d.data().phone || "";
+                document.getElementById('shopLocation').value = d.data().location || "";
+            }
+        }
+        window.acceptOrder = async id => updateDoc(doc(db, "orders", id), { status: "delivering", deliveryCode: currentUserCode });
+        window.finishOrder = async id => confirm("تم التسليم؟") && updateDoc(doc(db, "orders", id), { status: "completed" });
+        window.addAddressField = () => {
+            const i = document.createElement('input'); i.className = 'delivery-address'; i.placeholder = 'عنوان الزبون';
+            document.getElementById('addressContainer').appendChild(i);
+        };
+        window.confirmOrder = async () => {
+            const sn = document.getElementById('shopNumber').value;
+            const sl = document.getElementById('shopLocation').value;
+            const ads = Array.from(document.querySelectorAll('.delivery-address')).map(i => i.value).filter(v => v);
+            if(!sn || !sl || ads.length === 0) return alert("أكمل البيانات");
+            await addDoc(ordersCol, { merchantCode: currentUserCode, deliveryCode: "", shopNum: sn, shopLoc: sl, addresses: ads, status: "waiting", createdAt: new Date() });
+            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
+            showModal('statusModal');
+        };
+
+        window.onload = () => {
             if (userRole === 'admin') goTo('adminPage');
             else if (userRole === 'merchant') { goTo('merchantPage'); loadMerchantData(currentUserCode); initInteractiveMap(); }
             else if (userRole === 'delivery') { goTo('deliveryPage'); requestWakeLock(); }
@@ -256,29 +211,26 @@
         .active { display: flex; }
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; text-align: center; margin-bottom: 20px; box-sizing: border-box; }
         h1 { color: #1a73e8; font-size: 50px; margin: 10px 0; }
-        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
-        input[readonly] { background-color: #f9f9f9; color: #777; border: 1px dashed #ccc; cursor: not-allowed; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; outline: none; text-align: center; box-sizing: border-box; }
+        input[readonly] { background: #f9f9f9; color: #777; border: 1px dashed #ccc; }
         .btn { cursor: pointer; border: none; border-radius: 12px; width: 100%; padding: 15px; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         .btn-main { background: #1a73e8; color: white; }
         .btn-delivery { background: #34a853; color: white; }
         .btn-confirm { background: #fb8c00; color: white; }
         .btn-accept-green { background: #28a745; color: white; }
         .btn-finish-red { background: #dc3545; color: white; }
-        .btn-notify { background: #673ab7; color: white; margin-bottom: 10px; font-size: 14px; border: 2px solid #fff; animation: pulse 2s infinite; }
+        .btn-notify { background: #673ab7; color: white; border: 2px solid #fff; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; z-index: 1; }
-        .monitor-card { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 450px; border: 1px solid #eee; margin-top:10px; }
-        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
+        #map { height: 200px; width: 100%; border-radius: 15px; margin: 10px 0; }
+        .monitor-item { border-bottom: 1px solid #f9f9f9; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .badge { padding: 5px 10px; border-radius: 8px; font-size: 12px; }
         .waiting { background: #fff3cd; color: #856404; }
         .delivering { background: #d1ecf1; color: #0c5460; }
-        .stat-box { background: #e8f0fe; padding: 15px; border-radius: 12px; cursor: pointer; margin-bottom: 15px; border: 1px solid #1a73e8; }
-        .admin-section { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; text-align: right; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 24px; width: 90%; max-width: 340px; text-align: center; }
-        .back { margin-top: 20px; color: #888; cursor: pointer; font-size: 14px; text-decoration: underline; }
-        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; }
+        .order-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-right: 5px solid #34a853; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: right; width: 100%; }
         .btn-gps-link { color: #1a73e8; text-decoration: none; font-weight: bold; display: block; margin: 5px 0; }
+        .back { margin-top: 20px; color: #888; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -320,7 +272,7 @@
             <button class="btn btn-confirm" onclick="confirmOrder()">نشر الطلب</button>
             <div class="back" onclick="logout()">خروج</div>
         </div>
-        <div class="monitor-card" id="merchantOrdersMonitor"></div>
+        <div id="merchantOrdersMonitor" style="width:100%; max-width:450px;"></div>
     </div>
 
     <div id="deliveryPage" class="screen">
@@ -335,36 +287,11 @@
     <div id="adminPage" class="screen">
         <div class="card">
             <h2>🎛️ الإدارة</h2>
-            <div class="stat-box" onclick="toggleArchive()">✅ مكتمل: <span id="completedCount">0</span></div>
-            
-            <div id="adminArchive" style="display:none; margin-bottom:10px; max-height:200px; overflow-y:auto;">
-                <div id="archivedOrdersList"></div>
-            </div>
-
-            <div class="admin-section">
-                <h4>➕ إضافة مستخدم (تاجر/مندوب)</h4>
-                <input type="text" id="newCode" placeholder="كود الدخول (الباسورد)">
-                <select id="newRole">
-                    <option value="merchant">تاجر</option>
-                    <option value="delivery">مندوب</option>
-                </select>
-                <input type="tel" id="newPhone" placeholder="هاتف التاجر (اختياري)">
-                <input type="text" id="newLoc" placeholder="رابط موقع التاجر (اختياري)">
-                <button class="btn btn-delivery" onclick="addUser()">حفظ المستخدم</button>
-            </div>
+            <div>✅ مكتمل: <span id="completedCount">0</span></div>
             <button class="btn btn-main" onclick="logout()">خروج</button>
         </div>
-        <div class="monitor-card"><h3>📈 الطلبات الجارية</h3><div id="adminOrdersMonitor"></div></div>
     </div>
 
-    <script>
-        function goTo(pageId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-        }
-        function resetForm() {
-            document.getElementById('addressContainer').innerHTML = '<input type="text" class="delivery-address" placeholder="عنوان الزبون">';
-        }
-    </script>
 </body>
 </html>
+ذ
