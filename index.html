@@ -21,6 +21,7 @@
             --purple-secondary: #9f7aea;
             --purple-dark: #4c1d95;
             --purple-light: #e2e8f0;
+            --form-bg: #4c1d95; /* لون خلفية النموذج المأخوذ من الصورة */
             --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
@@ -236,7 +237,7 @@
             display: block;
         }
 
-        /* Form */
+        /* Form القسم الخاص بالنموذج */
         .form-section {
             padding: 100px 0;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
@@ -252,13 +253,23 @@
             text-align: center;
         }
 
+        /* تطبيق نمط "الخفي" على كافة الحقول */
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 15px;
             margin-bottom: 20px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid transparent; /* إخفاء الإطار الافتراضي */
             border-radius: 12px;
             font-family: inherit;
+            background-color: var(--form-bg); /* لون الخلفية الداكن من الصورة */
+            color: var(--white); /* لون النص أبيض ليتباين مع الخلفية */
+            transition: border-color 0.3s ease;
+        }
+
+        /* إضافة تأثير عند التركيز */
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5); /* إطار أبيض شفاف خفيف عند التركيز */
         }
 
         /* WhatsApp */
@@ -357,14 +368,15 @@
             <div class="form-container">
                 <h2 style="color: var(--purple-primary); margin-bottom: 30px;">دعنا نبدأ العمل</h2>
                 <form id="whatsappForm">
-                    <input type="text" id="name" placeholder="الاسم الكامل" required>
-                    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
-                    <select id="service" required>
-                        <option value="" disabled selected>اختر الخدمة</option>
-                        <option>تطوير موقع</option>
-                        <option>تطوير تطبيق</option>
-                    </select>
-                    <textarea rows="4" id="details" placeholder="تفاصيل المشروع"></textarea>
+                    <div class="form-group"><input type="text" id="name" placeholder="الاسم الكامل" required></div>
+                    <div class="form-group">
+                        <select id="service" required>
+                            <option value="" disabled selected>اختر الخدمة</option>
+                            <option>تطوير موقع</option>
+                            <option>تطوير تطبيق</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><textarea rows="4" id="details" placeholder="تفاصيل المشروع"></textarea></div>
                     <button type="submit" class="submit-btn">إرسال الطلب الآن</button>
                 </form>
             </div>
@@ -391,8 +403,10 @@
             e.preventDefault();
             const name = document.getElementById('name').value;
             const service = document.getElementById('service').value;
+            const details = document.getElementById('details').value; // جلب تفاصيل المشروع
             const phoneNumber = "201119024874";
-            const message = `*طلب خدمة جديد*%0A*الاسم:* ${name}%0A*الخدمة:* ${service}`;
+            // تم تحديث الرسالة المرسلة لتشمل التفاصيل
+            const message = `*طلب خدمة جديد*%0A*الاسم:* ${name}%0A*الخدمة:* ${service}%0A*التفاصيل:* ${details}`;
             window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
         });
     </script>
