@@ -21,7 +21,7 @@
             --purple-secondary: #9f7aea;
             --purple-dark: #4c1d95;
             --purple-light: #e2e8f0;
-            --form-bg: #4c1d95; 
+            --form-bg: #4c1d95;
             --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
@@ -34,11 +34,10 @@
             overflow-x: hidden;
         }
 
-        /* تعديل الهيدر لضمان عدم تداخله */
         header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            padding: 1rem 0;
+            padding: 1.2rem 0;
             box-shadow: var(--shadow);
             position: fixed;
             width: 100%;
@@ -53,32 +52,36 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
             max-width: 1300px;
             margin: 0 auto;
             padding: 0 20px;
         }
 
         .logo {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 900;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         nav ul {
             display: flex;
             list-style: none;
-            gap: 25px;
+            gap: 30px;
         }
 
         nav a {
             text-decoration: none;
             color: #4a5568;
             font-weight: 600;
+            font-size: 1rem;
+            transition: 0.3s;
         }
 
-        /* --- التعديل الأساسي هنا --- */
+        /* --- التعديل هنا لظهور الكلمة كاملة --- */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -87,7 +90,7 @@
             position: relative;
             background: linear-gradient(135deg, var(--white) 0%, var(--purple-light) 100%);
             width: 100%;
-            /* زيادة الحشوة العلوية لتدفع النص لأسفل الهيدر الثابت */
+            /* نزيد الـ padding العلوي لضمان نزول النص تحت الهيدر تماماً */
             padding-top: 120px; 
             padding-bottom: 50px;
         }
@@ -97,79 +100,78 @@
             z-index: 2;
             text-align: center;
             max-width: 1100px;
+            margin: 0 auto;
             width: 100%;
             padding: 0 20px;
         }
 
         .hero h1 {
-            font-size: clamp(2.2rem, 8vw, 4.5rem);
+            font-size: clamp(2rem, 8vw, 4.5rem);
             font-weight: 900;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 1.5rem;
-            line-height: 1.3;
-            /* التأكد من أن العنوان له أولوية في الظهور */
-            position: relative;
+            background-clip: text;
+            margin-bottom: 2rem;
+            line-height: 1.4; /* زيادة المسافة بين الأسطر لعدم التداخل */
         }
-        /* -------------------------- */
+        /* -------------------------------------- */
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
             color: #4a5568;
             margin-bottom: 3rem;
             max-width: 700px;
-            margin-left: auto;
             margin-right: auto;
+            margin-left: auto;
         }
 
         .cta-buttons {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
         }
 
         .cta-primary, .submit-btn {
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
             color: var(--white);
-            padding: 15px 35px;
+            padding: 15px 40px;
             border-radius: 50px;
             text-decoration: none;
             font-size: 1.1rem;
             font-weight: 700;
             box-shadow: var(--shadow-lg);
+            transition: all 0.4s ease;
             border: none;
             cursor: pointer;
-            transition: transform 0.3s ease;
         }
-
-        .cta-primary:hover { transform: scale(1.05); }
 
         .cta-secondary {
             background: transparent;
             color: var(--purple-primary);
-            padding: 15px 35px;
+            padding: 15px 40px;
             border: 2px solid var(--purple-primary);
             border-radius: 50px;
             text-decoration: none;
             font-size: 1.1rem;
             font-weight: 700;
+            transition: all 0.4s ease;
         }
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 20px;
             width: 100%;
             max-width: 900px;
-            margin: 20px auto 0;
+            margin: 40px auto 0;
         }
 
         .stat-item {
             background: var(--white);
-            padding: 20px;
+            padding: 25px 15px;
             border-radius: 20px;
             box-shadow: var(--shadow);
             text-align: center;
@@ -182,25 +184,71 @@
             display: block;
         }
 
-        .services { padding: 80px 0; background: #f8fafc; text-align: center; }
-        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 40px; padding: 0 20px; }
-        .service-card { background: var(--white); padding: 30px; border-radius: 25px; box-shadow: var(--shadow); }
-        .service-icon { font-size: 2rem; color: var(--purple-primary); margin-bottom: 15px; }
-
-        .form-section { padding: 80px 0; background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark)); }
-        .form-container { max-width: 600px; margin: 0 auto; background: var(--white); padding: 40px; border-radius: 30px; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: none; background: var(--form-bg); color: white; font-family: inherit;
+        .services {
+            padding: 80px 0;
+            background: #f8fafc;
+            text-align: center;
         }
 
-        .whatsapp-float { position: fixed; width: 60px; height: 60px; bottom: 30px; left: 30px; background: #25d366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; z-index: 1000; text-decoration: none; box-shadow: var(--shadow-lg); }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 0 20px;
+            margin-top: 50px;
+        }
 
-        footer { background: var(--purple-dark); color: var(--white); padding: 20px 0; text-align: center; }
+        .service-card {
+            background: var(--white);
+            padding: 40px 30px;
+            border-radius: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .form-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
+        }
+
+        .form-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--form-bg);
+            color: var(--white);
+        }
+
+        .whatsapp-float {
+            position: fixed;
+            width: 60px; height: 60px;
+            bottom: 30px; left: 30px;
+            background: #25d366;
+            color: var(--white);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem;
+            z-index: 1000;
+            text-decoration: none;
+        }
+
+        footer { background: var(--purple-dark); color: var(--white); padding: 30px 0; text-align: center; }
 
         @media (max-width: 768px) {
-            .hero { padding-top: 140px; } /* زيادة الحشوة في الجوال */
-            .header-content { flex-direction: column; }
-            nav ul { gap: 15px; margin-top: 10px; }
+            .header-content { flex-direction: column; gap: 10px; }
+            .hero { padding-top: 150px; } /* زيادة المساحة للجوال لضمان عدم الاختفاء */
+            nav ul { gap: 15px; }
+            .hero h1 { font-size: 2.2rem; }
         }
     </style>
 </head>
@@ -213,30 +261,36 @@
                 <ul>
                     <li><a href="#home">الرئيسية</a></li>
                     <li><a href="#services">الخدمات</a></li>
-                    <li><a href="#contact">تواصل</a></li>
+                    <li><a href="#contact">تواصل معي</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
     <section class="hero" id="home">
-        <div class="hero-content">
-            <h1>نحول أفكارك الرقمية إلى واقع ملموس</h1>
-            <p>نحن نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي.</p>
-            
-            <div class="cta-buttons">
-                <a href="#contact" class="cta-primary">ابدأ مشروعك الآن</a>
-                <a href="#services" class="cta-secondary">استكشف خدماتنا</a>
-            </div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-number">150+</span>
-                    <span class="stat-label">مشروع مكتمل</span>
+        <div class="container">
+            <div class="hero-content">
+                <h1>نحول أفكارك الرقمية إلى واقع ملموس</h1>
+                <p>نحن نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي.</p>
+                
+                <div class="cta-buttons">
+                    <a href="#contact" class="cta-primary">ابدأ مشروعك الآن</a>
+                    <a href="#services" class="cta-secondary">استكشف خدماتنا</a>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-number">50+</span>
-                    <span class="stat-label">عميل سعيد</span>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number">150+</span>
+                        <span class="stat-label">مشروع مكتمل</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">50+</span>
+                        <span class="stat-label">عميل سعيد</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">5+</span>
+                        <span class="stat-label">سنوات خبرة</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -244,42 +298,71 @@
 
     <section class="services" id="services">
         <div class="container">
-            <h2 style="color: var(--purple-primary); margin-bottom: 20px;">خدماتنا المتميزة</h2>
+            <h2 style="color: var(--purple-primary); font-size: 2rem;">خدماتنا المتميزة</h2>
             <div class="services-grid">
-                <div class="service-card"><i class="fas fa-laptop-code service-icon"></i><h3>تطوير الويب</h3></div>
-                <div class="service-card"><i class="fas fa-mobile-alt service-icon"></i><h3>تطبيقات الجوال</h3></div>
+                <div class="service-card">
+                    <i class="fas fa-laptop-code" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 15px;"></i>
+                    <h3>تطوير الويب</h3>
+                    <p>بناء مواقع إلكترونية سريعة ومستجابة.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-mobile-alt" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 15px;"></i>
+                    <h3>تطبيقات الجوال</h3>
+                    <p>تطوير تطبيقات أندرويد و iOS بأداء سلس.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-paint-brush" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 15px;"></i>
+                    <h3>تصميم UI/UX</h3>
+                    <p>خلق تجارب مستخدم فريدة وجذابة.</p>
+                </div>
             </div>
         </div>
     </section>
 
     <section class="form-section" id="contact">
-        <div class="form-container">
-            <h2 style="text-align: center; color: var(--purple-primary); margin-bottom: 20px;">دعنا نبدأ العمل</h2>
-            <form id="whatsappForm">
-                <input type="text" id="name" placeholder="الاسم الكامل" class="form-group input" style="width: 100%;" required>
-                <select id="service" class="form-group select" style="width: 100%;" required>
-                    <option value="" disabled selected>اختر الخدمة</option>
-                    <option>تطوير موقع</option>
-                    <option>تطوير تطبيق</option>
-                </select>
-                <textarea id="details" rows="4" placeholder="تفاصيل المشروع" class="form-group textarea" style="width: 100%;"></textarea>
-                <button type="submit" class="submit-btn" style="width: 100%;">إرسال الطلب</button>
-            </form>
+        <div class="container">
+            <div class="form-container">
+                <h2 style="color: var(--purple-primary); margin-bottom: 30px;">دعنا نبدأ العمل</h2>
+                <form id="whatsappForm">
+                    <div class="form-group"><input type="text" id="name" placeholder="الاسم الكامل" required></div>
+                    <div class="form-group">
+                        <select id="service" required>
+                            <option value="" disabled selected>اختر الخدمة</option>
+                            <option>تطوير موقع</option>
+                            <option>تطوير تطبيق</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><textarea rows="4" id="details" placeholder="تفاصيل المشروع"></textarea></div>
+                    <button type="submit" class="submit-btn" style="width: 100%;">إرسال الطلب الآن</button>
+                </form>
+            </div>
         </div>
     </section>
 
-    <footer><p>جميع الحقوق محفوظة &copy; 2024</p></footer>
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2024 | تصاميم ويب</p>
+    </footer>
 
-    <a href="https://wa.me/201119024874" class="whatsapp-float" target="_blank"><i class="fab fa-whatsapp"></i></a>
+    <a href="https://wa.me/201119024874" class="whatsapp-float" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
     <script>
+        // حماية الكود
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        };
+
         document.getElementById('whatsappForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const name = document.getElementById('name').value;
             const service = document.getElementById('service').value;
             const details = document.getElementById('details').value;
+            const phoneNumber = "201119024874";
             const message = `*طلب خدمة جديد*%0A*الاسم:* ${name}%0A*الخدمة:* ${service}%0A*التفاصيل:* ${details}`;
-            window.open(`https://wa.me/201119024874?text=${message}`, '_blank');
+            window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
         });
     </script>
 </body>
