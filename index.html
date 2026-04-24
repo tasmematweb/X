@@ -11,7 +11,6 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            /* منع النسخ وتحديد النصوص */
             user-select: none;
             -webkit-user-select: none;
         }
@@ -22,8 +21,8 @@
             --purple-secondary: #9f7aea;
             --purple-dark: #4c1d95;
             --purple-light: #e2e8f0;
-            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.3);
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
 
         body {
@@ -32,7 +31,6 @@
             color: #2d3748;
             background: var(--white);
             overflow-x: hidden;
-            /* مساحة للنافذة العلوية الثابتة */
             padding-top: 90px;
         }
 
@@ -40,13 +38,11 @@
             max-width: 1300px;
             margin: 0 auto;
             padding: 0 20px;
-            /* توسيط المحتوى */
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        /* Header - ثابت على الحواف */
         header {
             background: var(--white);
             backdrop-filter: blur(20px);
@@ -78,17 +74,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo i {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-            padding: 15px;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
         }
 
         nav ul {
@@ -106,27 +91,6 @@
             transition: all 0.3s ease;
         }
 
-        nav a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 3px;
-            bottom: -5px;
-            right: 0;
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-            transition: width 0.3s ease;
-            border-radius: 2px;
-        }
-
-        nav a:hover {
-            color: var(--purple-primary);
-        }
-
-        nav a:hover::after {
-            width: 100%;
-        }
-
-        /* Hero Section - محتوى موسط بالكامل */
         .hero {
             min-height: calc(100vh - 90px);
             display: flex;
@@ -138,19 +102,11 @@
             width: 100%;
         }
 
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(107,70,193,0.03)"/><circle cx="75" cy="75" r="1.5" fill="rgba(107,70,193,0.02)"/><circle cx="50" cy="10" r="0.8" fill="rgba(107,70,193,0.04)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            z-index: 1;
-        }
-
         .hero-content {
             position: relative;
             z-index: 2;
             text-align: center;
-            max-width: 1100px; /* لضمان ظهور العنوان كاملاً */
+            max-width: 1100px;
             margin: 0 auto;
             width: 100%;
         }
@@ -164,7 +120,6 @@
             background-clip: text;
             margin-bottom: 2rem;
             line-height: 1.2;
-            display: block; /* لضمان عدم اختفاء أي جزء */
         }
 
         .hero p {
@@ -172,8 +127,7 @@
             color: #4a5568;
             margin-bottom: 3rem;
             max-width: 700px;
-            margin-right: auto;
-            margin-left: auto;
+            margin: 0 auto 3rem;
         }
 
         .cta-buttons {
@@ -181,94 +135,87 @@
             gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-bottom: 50px;
         }
 
-        /* توحيد تصميم الأزرار */
         .cta-primary, .submit-btn {
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
             color: var(--white);
-            padding: 20px 50px;
+            padding: 18px 45px;
             border-radius: 50px;
             text-decoration: none;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             box-shadow: var(--shadow-lg);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
+            transition: all 0.4s ease;
             border: none;
             cursor: pointer;
-            font-family: inherit;
-        }
-
-        .cta-primary::before, .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .cta-primary:hover::before, .submit-btn:hover::before { left: 100%; }
-
-        .cta-primary:hover, .submit-btn:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 40px 80px -12px rgba(107, 70, 193, 0.4);
         }
 
         .cta-secondary {
             background: transparent;
             color: var(--purple-primary);
-            padding: 20px 50px;
-            border: 3px solid var(--purple-primary);
+            padding: 18px 45px;
+            border: 2px solid var(--purple-primary);
             border-radius: 50px;
             text-decoration: none;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             transition: all 0.4s ease;
         }
 
-        .cta-secondary:hover {
-            background: var(--purple-primary);
-            color: var(--white);
-            transform: translateY(-5px);
-        }
-
-        /* Stats */
+        /* تعديل الثيم الخاص بالإحصائيات ليكون مثل الخدمات (الدائرة الخضراء) */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 40px;
-            margin-top: 8rem;
+            gap: 25px;
             width: 100%;
+            max-width: 1000px;
+            margin: 40px auto 0;
         }
 
-        .stat-item { text-align: center; padding: 2rem; }
+        .stat-item {
+            background: var(--white);
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(107, 70, 193, 0.05);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
         .stat-number {
-            font-size: 3.5rem;
+            font-size: 2.5rem;
             font-weight: 900;
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--purple-primary);
             display: block;
         }
-        .stat-label { font-size: 1.2rem; color: #718096; font-weight: 600; margin-top: 1rem; }
 
-        /* Services */
+        .stat-label {
+            font-size: 1rem;
+            color: #718096;
+            font-weight: 600;
+        }
+
+        /* الخدمات */
         .services {
-            padding: 120px 0;
-            background: linear-gradient(135deg, var(--purple-light) 0%, var(--white) 100%);
+            padding: 100px 0;
+            background: #f8fafc;
             width: 100%;
             text-align: center;
         }
 
         .services-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
             width: 100%;
+            margin-top: 50px;
         }
 
         .service-card {
@@ -276,79 +223,71 @@
             padding: 40px 30px;
             border-radius: 25px;
             box-shadow: var(--shadow);
-            border: 1px solid rgba(107, 70, 193, 0.1);
-            position: relative;
-            overflow: hidden;
+            border: 1px solid rgba(107, 70, 193, 0.05);
             transition: all 0.4s ease;
         }
 
-        .service-card:hover { transform: translateY(-20px); }
+        .service-card:hover { transform: translateY(-10px); }
 
         .service-icon {
-            width: 80px; height: 80px;
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-            border-radius: 20px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 25px;
-            font-size: 2rem; color: var(--white);
+            font-size: 2rem;
+            color: var(--purple-primary);
+            margin-bottom: 20px;
+            display: block;
         }
 
-        /* Form Section */
+        /* Form */
         .form-section {
-            padding: 120px 0;
-            background: linear-gradient(135deg, var(--purple-primary) 0%, var(--purple-dark) 100%);
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
             width: 100%;
         }
 
         .form-container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 60px;
+            background: var(--white);
+            padding: 50px;
             border-radius: 30px;
-            box-shadow: var(--shadow-lg);
             text-align: center;
         }
 
-        .form-group { margin-bottom: 30px; text-align: right; }
-        .form-group label { display: block; margin-bottom: 12px; font-weight: 700; color: var(--purple-primary); }
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%; padding: 20px 25px; border: 2px solid #e2e8f0; border-radius: 20px; font-family: inherit;
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-family: inherit;
         }
 
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
-
-        /* WhatsApp البنفسجي */
+        /* WhatsApp */
         .whatsapp-float {
             position: fixed;
-            width: 70px; height: 70px;
-            bottom: 40px; left: 40px;
+            width: 60px; height: 60px;
+            bottom: 30px; left: 30px;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
             color: var(--white);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             box-shadow: var(--shadow-lg);
             z-index: 1000;
-            transition: all 0.3s ease;
             text-decoration: none;
         }
 
-        .whatsapp-float:hover { transform: translateY(-10px) scale(1.1); }
-
-        footer { background: var(--purple-dark); color: var(--white); text-align: center; padding: 40px 0; width: 100%; }
-
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-        .animate { animation: fadeInUp 1s ease forwards; }
+        footer { background: var(--purple-dark); color: var(--white); padding: 30px 0; text-align: center; width: 100%; }
 
         @media (max-width: 768px) {
-            .header-content { flex-direction: column; gap: 20px; }
-            .form-row { grid-template-columns: 1fr; }
-            body { padding-top: 150px; }
+            .header-content { flex-direction: column; gap: 15px; }
+            .hero h1 { font-size: 2rem; }
+            .stats { grid-template-columns: 1fr; padding: 0 40px; }
         }
     </style>
 </head>
-<body oncontextmenu="return false;"> <header>
+<body oncontextmenu="return false;">
+
+    <header>
         <div class="header-content">
             <div class="logo">تصاميم ويب</div>
             <nav>
@@ -363,9 +302,10 @@
 
     <section class="hero" id="home">
         <div class="container">
-            <div class="hero-content animate">
+            <div class="hero-content">
                 <h1>نحول أفكارك الرقمية إلى واقع ملموس</h1>
-                <p>نحن نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي، لمساعدة أعمالك على النمو في العالم الرقمي.</p>
+                <p>نحن نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي.</p>
+                
                 <div class="cta-buttons">
                     <a href="#contact" class="cta-primary">ابدأ مشروعك الآن</a>
                     <a href="#services" class="cta-secondary">استكشف خدماتنا</a>
@@ -391,24 +331,22 @@
 
     <section class="services" id="services">
         <div class="container">
-            <div class="section-header">
-                <h2 class="section-title" style="font-size: 3rem; color: var(--purple-primary); margin-bottom: 50px;">خدماتنا المتميزة</h2>
-            </div>
+            <h2 style="color: var(--purple-primary); margin-bottom: 40px; font-size: 2.5rem;">خدماتنا المتميزة</h2>
             <div class="services-grid">
                 <div class="service-card">
-                    <div class="service-icon"><i class="fas fa-laptop-code"></i></div>
+                    <i class="fas fa-laptop-code service-icon"></i>
                     <h3>تطوير الويب</h3>
-                    <p>بناء مواقع إلكترونية سريعة، مستجابة، ومتوافقة مع محركات البحث باستخدام أحدث التقنيات.</p>
+                    <p>بناء مواقع إلكترونية سريعة ومستجابة مع محركات البحث.</p>
                 </div>
                 <div class="service-card">
-                    <div class="service-icon"><i class="fas fa-mobile-alt"></i></div>
+                    <i class="fas fa-mobile-alt service-icon"></i>
                     <h3>تطبيقات الجوال</h3>
-                    <p>تصميم وتطوير تطبيقات أندرويد و iOS تتميز بسهولة الاستخدام والأداء السلس.</p>
+                    <p>تصميم وتطوير تطبيقات أندرويد و iOS بأداء سلس.</p>
                 </div>
                 <div class="service-card">
-                    <div class="service-icon"><i class="fas fa-paint-brush"></i></div>
+                    <i class="fas fa-paint-brush service-icon"></i>
                     <h3>تصميم UI/UX</h3>
-                    <p>خلق تجارب مستخدم فريدة وواجهات جذابة تضمن تفاعل العملاء مع منتجك.</p>
+                    <p>خلق تجارب مستخدم فريدة وواجهات جذابة.</p>
                 </div>
             </div>
         </div>
@@ -417,26 +355,16 @@
     <section class="form-section" id="contact">
         <div class="container">
             <div class="form-container">
-                <h2 style="font-size: 2.5rem; margin-bottom: 20px; color: var(--purple-primary);">دعنا نبدأ العمل</h2>
+                <h2 style="color: var(--purple-primary); margin-bottom: 30px;">دعنا نبدأ العمل</h2>
                 <form id="whatsappForm">
-                    <div class="form-row">
-                        <div class="form-group"><input type="text" id="name" placeholder="الاسم الكامل" required></div>
-                        <div class="form-group"><input type="email" id="email" placeholder="البريد الإلكتروني" required></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <select id="service" required>
-                                <option value="" disabled selected>اختر الخدمة</option>
-                                <option>تطوير موقع إلكتروني</option>
-                                <option>تطوير تطبيق جوال</option>
-                                <option>تصميم واجهات</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><input type="text" id="budget" placeholder="الميزانية المتوقعة"></div>
-                    </div>
-                    <div class="form-group">
-                        <textarea rows="5" id="details" placeholder="اشرح لنا فكرتك باختصار..."></textarea>
-                    </div>
+                    <input type="text" id="name" placeholder="الاسم الكامل" required>
+                    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+                    <select id="service" required>
+                        <option value="" disabled selected>اختر الخدمة</option>
+                        <option>تطوير موقع</option>
+                        <option>تطوير تطبيق</option>
+                    </select>
+                    <textarea rows="4" id="details" placeholder="تفاصيل المشروع"></textarea>
                     <button type="submit" class="submit-btn">إرسال الطلب الآن</button>
                 </form>
             </div>
@@ -444,9 +372,7 @@
     </section>
 
     <footer>
-        <div class="container">
-            <p>جميع الحقوق محفوظة &copy; 2024 | تصميم وتطوير تصاميم ويب</p>
-        </div>
+        <p>جميع الحقوق محفوظة &copy; 2024 | تصاميم ويب</p>
     </footer>
 
     <a href="https://wa.me/201119024874" class="whatsapp-float" target="_blank">
@@ -454,23 +380,19 @@
     </a>
 
     <script>
-        // حماية الكود ومنع الوصول للملفات البرمجية
+        // حماية الكود
         document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false; // F12
+            if(e.keyCode == 123) return false;
             if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // View Source
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
         };
 
         document.getElementById('whatsappForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
             const service = document.getElementById('service').value;
-            const details = document.getElementById('details').value;
             const phoneNumber = "201119024874";
-            const message = `*طلب خدمة جديد*%0A%0A*الاسم:* ${name}%0A*الإيميل:* ${email}%0A*الخدمة:* ${service}%0A*التفاصيل:* ${details}`;
+            const message = `*طلب خدمة جديد*%0A*الاسم:* ${name}%0A*الخدمة:* ${service}`;
             window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
         });
     </script>
