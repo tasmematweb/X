@@ -1,3 +1,5 @@
+تفضل الكود النهائي كاملاً بعد استبدال النص وإزالة الأيقونة (المربع البنفسجي) مع الإبقاء على كافة التفاصيل الأخرى كما هي تماماً:
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -567,13 +569,11 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header>
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-code"></i>
-                    مبرمج محترف
+                    تصاميم ويب
                 </div>
                 <nav>
                     <ul>
@@ -582,4 +582,130 @@
                         <li><a href="#contact">تواصل معي</a></li>
                     </ul>
                 </nav>
-           
+            </div>
+        </div>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="hero-content animate">
+                <h1>نحول أفكارك الرقمية إلى واقع ملموس</h1>
+                <p>نحن نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي، لمساعدة أعمالك على النمو في العالم الرقمي.</p>
+                <div class="cta-buttons">
+                    <a href="#contact" class="cta-primary">ابدأ مشروعك الآن</a>
+                    <a href="#services" class="cta-secondary">استكشف خدماتنا</a>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number">150+</span>
+                        <span class="stat-label">مشروع مكتمل</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">50+</span>
+                        <span class="stat-label">عميل سعيد</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">5+</span>
+                        <span class="stat-label">سنوات خبرة</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">خدماتنا المتميزة</h2>
+                <p class="section-subtitle">نقدم مجموعة واسعة من الخدمات التقنية الاحترافية المصممة خصيصاً لتلبية احتياجاتك.</p>
+            </div>
+            
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <h3>تطوير الويب</h3>
+                    <p>بناء مواقع إلكترونية سريعة، مستجابة، ومتوافقة مع محركات البحث باستخدام أحدث التقنيات.</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>تطبيقات الجوال</h3>
+                    <p>تصميم وتطوير تطبيقات أندرويد و iOS تتميز بسهولة الاستخدام والأداء السلس.</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-paint-brush"></i>
+                    </div>
+                    <h3>تصميم UI/UX</h3>
+                    <p>خلق تجارب مستخدم فريدة وواجهات جذابة تضمن تفاعل العملاء مع منتجك.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="contact">
+        <div class="container">
+            <div class="form-container">
+                <h2 class="form-title">دعنا نبدأ العمل</h2>
+                <p class="form-subtitle">أرسل لنا تفاصيل مشروعك وسنتواصل معك في أقرب وقت ممكن.</p>
+                
+                <form action="#">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>الاسم الكامل</label>
+                            <input type="text" placeholder="أدخل اسمك هنا" required>
+                        </div>
+                        <div class="form-group">
+                            <label>البريد الإلكتروني</label>
+                            <input type="email" placeholder="email@example.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>نوع الخدمة</label>
+                            <select required>
+                                <option value="" disabled selected>اختر الخدمة</option>
+                                <option>تطوير موقع إلكتروني</option>
+                                <option>تطوير تطبيق جوال</option>
+                                <option>تصميم واجهات</option>
+                                <option>أخرى</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>الميزانية المتوقعة</label>
+                            <input type="text" placeholder="مثلاً: 1000$ - 3000$">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>تفاصيل المشروع</label>
+                        <textarea rows="5" placeholder="اشرح لنا فكرتك باختصار..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">إرسال الطلب الآن</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>جميع الحقوق محفوظة &copy; 2024 | تصميم وتطوير تصاميم ويب</p>
+        </div>
+    </footer>
+
+    <a href="https://wa.me/201234567890" class="whatsapp-float" target="_blank">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+</body>
+</html>
+
+```
