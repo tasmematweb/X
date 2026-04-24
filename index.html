@@ -26,6 +26,35 @@
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
 
+        /* --- كود تأثير الأمطار البنفسجية المضيئة --- */
+        .rain-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .drop {
+            position: absolute;
+            background: linear-gradient(to bottom, rgba(159, 122, 234, 0), rgba(159, 122, 234, 0.6));
+            width: 1.5px;
+            height: 60px;
+            top: -100px;
+            animation: fall linear infinite;
+            filter: drop-shadow(0 0 5px rgba(159, 122, 234, 0.8));
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(110vh);
+            }
+        }
+        /* ----------------------------------------- */
+
         body {
             font-family: 'Cairo', sans-serif;
             line-height: 1.7;
@@ -42,6 +71,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
+            z-index: 1; /* فوق المطر */
         }
 
         header {
@@ -243,6 +274,8 @@
             background: #f8fafc;
             width: 100%;
             text-align: center;
+            position: relative;
+            z-index: 1;
         }
 
         .services-grid {
@@ -275,6 +308,8 @@
             padding: 100px 0;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
         .form-container {
@@ -317,7 +352,7 @@
             text-decoration: none;
         }
 
-        footer { background: var(--purple-dark); color: var(--white); padding: 30px 0; text-align: center; width: 100%; }
+        footer { background: var(--purple-dark); color: var(--white); padding: 30px 0; text-align: center; width: 100%; position: relative; z-index: 1; }
 
         @media (max-width: 768px) {
             .header-content { flex-direction: column; gap: 15px; }
@@ -327,6 +362,8 @@
     </style>
 </head>
 <body oncontextmenu="return false;">
+
+    <div class="rain-bg" id="rainContainer"></div>
 
     <header>
         <div class="header-content">
@@ -423,6 +460,22 @@
     </a>
 
     <script>
+        // وظيفة إنشاء الأمطار
+        function createRain() {
+            const container = document.getElementById('rainContainer');
+            const dropCount = 40; // عدد القطرات
+            for (let i = 0; i < dropCount; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'drop';
+                drop.style.left = Math.random() * 100 + 'vw';
+                drop.style.animationDuration = (Math.random() * 2 + 3) + 's'; // سرعات متفاوتة
+                drop.style.opacity = Math.random() * 0.5;
+                drop.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(drop);
+            }
+        }
+        createRain();
+
         document.onkeydown = function(e) {
             if(e.keyCode == 123) return false;
             if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
