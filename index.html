@@ -92,8 +92,9 @@
             transition: all 0.3s ease;
         }
 
-        .hero {
-            min-height: calc(100vh - 90px);
+    
+            .hero {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -101,7 +102,11 @@
             background: linear-gradient(135deg, var(--white) 0%, var(--purple-light) 100%);
             overflow: hidden;
             width: 100%;
+            /* هذا السطر هو الذي سيدفع الكلمة لأسفل لتظهر كاملة */
+            padding-top: 150px; 
         }
+
+        
 
         .hero-content {
             position: relative;
