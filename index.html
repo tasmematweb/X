@@ -75,6 +75,7 @@
             padding: 15px;
             border-radius: 20px;
             box-shadow: var(--shadow);
+            color: var(--white);
         }
 
         nav ul {
@@ -119,23 +120,10 @@
             align-items: center;
             position: relative;
             background: linear-gradient(135deg, var(--white) 0%, var(--purple-light) 100%);
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(107,70,193,0.03)"/><circle cx="75" cy="75" r="1.5" fill="rgba(107,70,193,0.02)"/><circle cx="50" cy="10" r="0.8" fill="rgba(107,70,193,0.04)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            z-index: 1;
+            padding-top: 100px;
         }
 
         .hero-content {
-            position: relative;
-            z-index: 2;
             text-align: center;
             max-width: 900px;
             margin: 0 auto;
@@ -168,18 +156,22 @@
             flex-wrap: wrap;
         }
 
-        .cta-primary {
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
-            color: var(--white);
+        .cta-primary, .cta-secondary {
             padding: 20px 50px;
             border-radius: 50px;
             text-decoration: none;
             font-size: 1.2rem;
             font-weight: 700;
-            box-shadow: var(--shadow-lg);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            display: inline-block;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary));
+            color: var(--white);
+            box-shadow: var(--shadow-lg);
         }
 
         .cta-primary::before {
@@ -205,13 +197,7 @@
         .cta-secondary {
             background: transparent;
             color: var(--purple-primary);
-            padding: 20px 50px;
             border: 3px solid var(--purple-primary);
-            border-radius: 50px;
-            text-decoration: none;
-            font-size: 1.2rem;
-            font-weight: 700;
-            transition: all 0.4s ease;
         }
 
         .cta-secondary:hover {
@@ -225,8 +211,9 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 40px;
-            margin-top: 8rem;
+            margin: 8rem auto 0;
             padding: 0 20px;
+            max-width: 1000px;
         }
 
         .stat-item {
@@ -255,8 +242,6 @@
         .services {
             padding: 120px 0;
             background: linear-gradient(135deg, var(--purple-light) 0%, var(--white) 100%);
-            position: relative;
-            overflow: hidden;
         }
 
         .section-header {
@@ -355,18 +340,6 @@
         .form-section {
             padding: 120px 0;
             background: linear-gradient(135deg, var(--purple-primary) 0%, var(--purple-dark) 100%);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .form-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
         }
 
         .form-container {
@@ -377,8 +350,6 @@
             padding: 60px;
             border-radius: 30px;
             box-shadow: var(--shadow-lg);
-            position: relative;
-            z-index: 2;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
@@ -528,14 +499,6 @@
             50% { transform: translateY(-10px); }
         }
 
-        .animate {
-            animation: fadeInUp 1s ease forwards;
-        }
-
-        .service-card:nth-child(1) { animation-delay: 0.1s; }
-        .service-card:nth-child(2) { animation-delay: 0.2s; }
-        .service-card:nth-child(3) { animation-delay: 0.3s; }
-
         /* Responsive */
         @media (max-width: 768px) {
             .header-content {
@@ -583,4 +546,49 @@
                         <li><a href="#contact">تواصل معي</a></li>
                     </ul>
                 </nav>
-           
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>مرحباً بك في عالم البرمجة الاحترافية</h1>
+                <p>أقدم لك خدمات برمجة متميزة بأحدث التقنيات العالمية لتحويل أفكارك إلى واقع رقمي مذهل بجودة عالية وأسعار تنافسية</p>
+                <div class="cta-buttons">
+                    <a href="#contact" class="cta-primary">اطلب خدمتك الآن</a>
+                    <a href="https://wa.me/+201119024874" class="cta-secondary" target="_blank">تواصل واتساب</a>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number">+500</span>
+                    <span class="stat-label">مشروع ناجح</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">100%</span>
+                    <span class="stat-label">رضا العملاء</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">دعم فني</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">3 أيام</span>
+                    <span class="stat-label">تسليم سريع</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">خدماتي المميزة</h2>
+                <p class="section-subtitle">أقدم مجموعة شاملة من الخدمات البرمجية بأعلى معايير الجودة والاحترافية</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service
