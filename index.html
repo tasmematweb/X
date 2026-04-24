@@ -21,7 +21,7 @@
             --purple-secondary: #9f7aea;
             --purple-dark: #4c1d95;
             --purple-light: #e2e8f0;
-            --form-bg: #4c1d95; /* لون خلفية النموذج المأخوذ من الصورة */
+            --form-bg: #4c1d95;
             --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
@@ -92,8 +92,7 @@
             transition: all 0.3s ease;
         }
 
-    
-            .hero {
+        .hero {
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -102,11 +101,8 @@
             background: linear-gradient(135deg, var(--white) 0%, var(--purple-light) 100%);
             overflow: hidden;
             width: 100%;
-            /* هذا السطر هو الذي سيدفع الكلمة لأسفل لتظهر كاملة */
             padding-top: 150px; 
         }
-
-        
 
         .hero-content {
             position: relative;
@@ -170,29 +166,65 @@
             transition: all 0.4s ease;
         }
 
-        /* تعديل الثيم الخاص بالإحصائيات ليكون مثل الخدمات (الدائرة الخضراء) */
+        /* --- التعديل المطلوب: قسم الإحصائيات مع مسافة كبيرة ورفع للأعلى --- */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 25px;
             width: 100%;
             max-width: 1000px;
-            margin: 40px auto 0;
+            margin: 60px auto 120px; /* مسافة سفليّة كبيرة (120px) للفراغ المطلوب */
+            padding: 0 20px;
+            position: relative;
+            top: -30px; /* رفع الثيمات للأعلى */
+            z-index: 5;
         }
 
+        /* --- التعديل المطلوب: الثيمة مع تأثير النور البنفسجي يلتف حولها --- */
         .stat-item {
             background: var(--white);
-            padding: 30px 20px;
+            padding: 40px 20px;
             border-radius: 20px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(107, 70, 193, 0.05);
-            transition: all 0.3s ease;
             text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .stat-item:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(107, 70, 193, 0.4) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s ease, height 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .stat-item:active::before {
+            width: 300%;
+            height: 300%;
+            opacity: 1;
+        }
+
+        .stat-item:active {
+            transform: scale(0.98);
+            border-color: var(--purple-primary);
+            box-shadow: 0 0 15px rgba(107, 70, 193, 0.3);
+        }
+
+        .stat-number, .stat-label {
+            position: relative;
+            z-index: 1;
         }
 
         .stat-number {
@@ -242,7 +274,7 @@
             display: block;
         }
 
-        /* Form القسم الخاص بالنموذج */
+        /* النموذج */
         .form-section {
             padding: 100px 0;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
@@ -258,26 +290,23 @@
             text-align: center;
         }
 
-        /* تطبيق نمط "الخفي" على كافة الحقول */
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 15px;
             margin-bottom: 20px;
-            border: 1px solid transparent; /* إخفاء الإطار الافتراضي */
+            border: 1px solid transparent;
             border-radius: 12px;
             font-family: inherit;
-            background-color: var(--form-bg); /* لون الخلفية الداكن من الصورة */
-            color: var(--white); /* لون النص أبيض ليتباين مع الخلفية */
+            background-color: var(--form-bg);
+            color: var(--white);
             transition: border-color 0.3s ease;
         }
 
-        /* إضافة تأثير عند التركيز */
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
-            border-color: rgba(255, 255, 255, 0.5); /* إطار أبيض شفاف خفيف عند التركيز */
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
-        /* WhatsApp */
         .whatsapp-float {
             position: fixed;
             width: 60px; height: 60px;
@@ -297,7 +326,7 @@
         @media (max-width: 768px) {
             .header-content { flex-direction: column; gap: 15px; }
             .hero h1 { font-size: 2rem; }
-            .stats { grid-template-columns: 1fr; padding: 0 40px; }
+            .stats { grid-template-columns: 1fr; padding: 0 40px; margin-bottom: 80px; }
         }
     </style>
 </head>
@@ -397,7 +426,6 @@
     </a>
 
     <script>
-        // حماية الكود
         document.onkeydown = function(e) {
             if(e.keyCode == 123) return false;
             if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
@@ -408,9 +436,8 @@
             e.preventDefault();
             const name = document.getElementById('name').value;
             const service = document.getElementById('service').value;
-            const details = document.getElementById('details').value; // جلب تفاصيل المشروع
+            const details = document.getElementById('details').value;
             const phoneNumber = "201119024874";
-            // تم تحديث الرسالة المرسلة لتشمل التفاصيل
             const message = `*طلب خدمة جديد*%0A*الاسم:* ${name}%0A*الخدمة:* ${service}%0A*التفاصيل:* ${details}`;
             window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
         });
