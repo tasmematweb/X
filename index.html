@@ -26,7 +26,7 @@
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
 
-        /* --- كود تأثير الأمطار والبرق البنفسجي المطور --- */
+        /* --- كود تأثير الأمطار البنفسجية المضيئة --- */
         .weather-layer {
             position: fixed;
             top: 0;
@@ -37,27 +37,6 @@
             z-index: 1;
             overflow: hidden;
             background: transparent;
-        }
-
-        /* تأثير البرق البنفسجي */
-        .lightning-flash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #9f7aea;
-            opacity: 0;
-            z-index: 2;
-            animation: lightningAnim 7s infinite;
-        }
-
-        @keyframes lightningAnim {
-            0%, 95%, 100% { opacity: 0; }
-            96% { opacity: 0.2; }
-            97% { opacity: 0.05; }
-            98% { opacity: 0.25; }
-            99% { opacity: 0; }
         }
 
         .drop {
@@ -325,7 +304,6 @@
 <body oncontextmenu="return false;">
 
     <div class="weather-layer">
-        <div class="lightning-flash"></div>
         <div id="rainContainer"></div>
     </div>
 
@@ -424,14 +402,37 @@
     </a>
 
     <script>
+        // مصفوفة أصوات الرعد (خافتة وجذابة)
+        const thunderSounds = [
+            'https://www.soundjay.com/nature/sounds/thunder-01.mp3',
+            'https://www.soundjay.com/nature/sounds/thunder-02.mp3'
+        ];
+
+        function playThunder() {
+            const randomSound = thunderSounds[Math.floor(Math.random() * thunderSounds.length)];
+            const audio = new Audio(randomSound);
+            audio.volume = 0.2; // مستوى صوت منخفض ليكون جذاباً وغير مزعج
+            audio.play().catch(() => { /* معالجة قيود المتصفح */ });
+        }
+
+        // تشغيل الرعد بشكل عشوائي كل 10-20 ثانية
+        setInterval(() => {
+            playThunder();
+        }, Math.random() * 10000 + 10000);
+
+        // تشغيل أول رعد عند أول نقرة للمستخدم في الموقع
+        document.addEventListener('click', () => {
+            playThunder();
+        }, { once: true });
+
         function initRain() {
             const container = document.getElementById('rainContainer');
-            const dropCount = 35; // تقليل عدد القطرات لجو أهدأ
+            const dropCount = 35;
             for (let i = 0; i < dropCount; i++) {
                 const drop = document.createElement('div');
                 drop.className = 'drop';
                 drop.style.left = Math.random() * 100 + 'vw';
-                drop.style.animationDuration = (Math.random() * 2 + 3) + 's'; // حركة أبطأ (3 إلى 5 ثواني)
+                drop.style.animationDuration = (Math.random() * 2 + 3) + 's';
                 drop.style.animationDelay = Math.random() * 5 + 's';
                 container.appendChild(drop);
             }
