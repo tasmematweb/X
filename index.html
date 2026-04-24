@@ -26,52 +26,49 @@
             --shadow-lg: 0 35px 60px -12px rgba(0, 0, 0, 0.2);
         }
 
-        /* --- كود تأثير الأمطار المطور والبرق الجديد --- */
-        .weather-container {
+        /* --- كود تأثير الأمطار والبرق البنفسجي المطور --- */
+        .weather-layer {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1; /* فوق الخلفية البيضاء، تحت المحتوى */
+            z-index: 1;
             overflow: hidden;
             background: transparent;
         }
 
-        /* البرق الخاطف (الوميض) */
+        /* تأثير البرق البنفسجي */
         .lightning-flash {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: white;
+            background: #9f7aea;
             opacity: 0;
-            animation: lightningFlash 8s infinite;
-            z-index: 2; /* فوق المطر */
+            z-index: 2;
+            animation: lightningAnim 7s infinite;
         }
 
-        @keyframes lightningFlash {
-            0% { opacity: 0; }
-            1.5% { opacity: 0.15; } /* وميض سريع */
-            2% { opacity: 0.05; }
-            3% { opacity: 0.2; }
-            4% { opacity: 0; } /* يختفي */
-            100% { opacity: 0; } /* فترة انتظار طويلة */
+        @keyframes lightningAnim {
+            0%, 95%, 100% { opacity: 0; }
+            96% { opacity: 0.2; }
+            97% { opacity: 0.05; }
+            98% { opacity: 0.25; }
+            99% { opacity: 0; }
         }
 
-        /* قطرة المطر المحسنة */
         .drop {
             position: absolute;
-            background: linear-gradient(to bottom, transparent, rgba(159, 122, 234, 0.5));
+            background: linear-gradient(to bottom, transparent, #9f7aea);
             width: 2px;
             height: 80px;
             top: -100px;
             animation: fall linear infinite;
-            filter: blur(1px) drop-shadow(0 0 5px rgba(159, 122, 234, 0.7));
-            opacity: 0.5;
-            z-index: 1; /* تحت وميض البرق */
+            filter: blur(1px) drop-shadow(0 0 8px #9f7aea);
+            opacity: 0.6;
         }
 
         @keyframes fall {
@@ -96,11 +93,11 @@
             flex-direction: column;
             align-items: center;
             position: relative;
-            z-index: 10; /* ضمان ظهور النصوص فوق تأثيرات الطقس */
+            z-index: 10;
         }
 
         header {
-            background: rgba(255, 255, 255, 0.9); /* شفافية قليلة لرؤية الطقس */
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
             padding: 1.5rem 0;
             box-shadow: var(--shadow);
@@ -153,8 +150,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            /* تم جعل الخلفية شفافة لرؤية الطقس */
-            background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(226,232,240,0.5) 100%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(226,232,240,0.6) 100%);
             overflow: hidden;
             width: 100%;
             padding-top: 150px; 
@@ -236,7 +232,7 @@
         }
 
         .stat-item {
-            background: rgba(255, 255, 255, 0.85); /* شفافية ليتناسق مع الجو */
+            background: rgba(255, 255, 255, 0.9);
             padding: 40px 20px;
             border-radius: 20px;
             box-shadow: var(--shadow);
@@ -264,11 +260,10 @@
 
         .services {
             padding: 100px 0;
-            background: rgba(248, 250, 252, 0.6); /* خلفية شفافة قليلاً */
+            background: rgba(248, 250, 252, 0.7);
             width: 100%;
             text-align: center;
             position: relative;
-            z-index: 5;
         }
 
         .services-grid {
@@ -293,7 +288,6 @@
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
             width: 100%;
             position: relative;
-            z-index: 5;
         }
 
         .form-container {
@@ -330,8 +324,10 @@
 </head>
 <body oncontextmenu="return false;">
 
-    <div class="weather-container" id="weatherContainer">
-        <div class="lightning-flash"></div> </div>
+    <div class="weather-layer">
+        <div class="lightning-flash"></div>
+        <div id="rainContainer"></div>
+    </div>
 
     <header>
         <div class="header-content">
@@ -428,21 +424,19 @@
     </a>
 
     <script>
-        // تهيئة تأثيرات الجو (المطر)
-        function initWeather() {
-            const container = document.getElementById('weatherContainer');
-            const dropCount = 30; // تم تقليل عدد القطرات لجو أهدأ
+        function initRain() {
+            const container = document.getElementById('rainContainer');
+            const dropCount = 35; // تقليل عدد القطرات لجو أهدأ
             for (let i = 0; i < dropCount; i++) {
                 const drop = document.createElement('div');
                 drop.className = 'drop';
                 drop.style.left = Math.random() * 100 + 'vw';
-                // تم جعل الحركة أبطأ بزيادة مدة الانيميشن
-                drop.style.animationDuration = (Math.random() * 2 + 3) + 's'; // سرعات متفاوتة وبطيئة
-                drop.style.animationDelay = Math.random() * 5 + 's'; // توزيع زمني عشوائي
+                drop.style.animationDuration = (Math.random() * 2 + 3) + 's'; // حركة أبطأ (3 إلى 5 ثواني)
+                drop.style.animationDelay = Math.random() * 5 + 's';
                 container.appendChild(drop);
             }
         }
-        initWeather();
+        initRain();
 
         document.getElementById('whatsappForm').addEventListener('submit', function(e) {
             e.preventDefault();
