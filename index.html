@@ -166,21 +166,19 @@
             transition: all 0.4s ease;
         }
 
-        /* --- التعديل المطلوب: قسم الإحصائيات مع مسافة كبيرة ورفع للأعلى --- */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 25px;
             width: 100%;
             max-width: 1000px;
-            margin: 60px auto 120px; /* مسافة سفليّة كبيرة (120px) للفراغ المطلوب */
+            margin: 60px auto 120px;
             padding: 0 20px;
             position: relative;
-            top: -30px; /* رفع الثيمات للأعلى */
+            top: -30px;
             z-index: 5;
         }
 
-        /* --- التعديل المطلوب: الثيمة مع تأثير النور البنفسجي يلتف حولها --- */
         .stat-item {
             background: var(--white);
             padding: 40px 20px;
@@ -240,7 +238,6 @@
             font-weight: 600;
         }
 
-        /* الخدمات */
         .services {
             padding: 100px 0;
             background: #f8fafc;
@@ -274,7 +271,6 @@
             display: block;
         }
 
-        /* النموذج */
         .form-section {
             padding: 100px 0;
             background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
@@ -406,8 +402,9 @@
                     <div class="form-group">
                         <select id="service" required>
                             <option value="" disabled selected>اختر الخدمة</option>
-                            <option>تطوير موقع</option>
-                            <option>تطوير تطبيق</option>
+                            <option value="تطبيق موبايل">تطبيق موبايل</option>
+                            <option value="موقع إلكتروني">موقع إلكتروني</option>
+                            <option value="أخرى">أخرى</option>
                         </select>
                     </div>
                     <div class="form-group"><textarea rows="4" id="details" placeholder="تفاصيل المشروع"></textarea></div>
@@ -444,3 +441,4 @@
     </script>
 </body>
 </html>
+
