@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>واجهة مبرمج محترف - طلب خدمة برمجية</title>
+    
+    <meta property="og:title" content="تصميمات ويب - نحول أفكارك الرقمية إلى واقع">
+    <meta property="og:description" content="نقدم حلولاً برمجية متكاملة تجمع بين التصميم الإبداعي والأداء العالي.">
+    <meta property="og:image" content="https://i.pinimg.com/originals/13/2e/81/132e81177685657803a647d63229b45e.jpg">
+    <meta property="og:url" content="https://tasmematweb.netlify.app">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://i.pinimg.com/originals/13/2e/81/132e81177685657803a647d63229b45e.jpg">
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
@@ -402,7 +411,7 @@
     </a>
 
     <script>
-        // مصفوفة أصوات الرعد (خافتة وجذابة)
+        // مصفوفة أصوات الرعد
         const thunderSounds = [
             'https://www.soundjay.com/nature/sounds/thunder-01.mp3',
             'https://www.soundjay.com/nature/sounds/thunder-02.mp3'
@@ -411,16 +420,14 @@
         function playThunder() {
             const randomSound = thunderSounds[Math.floor(Math.random() * thunderSounds.length)];
             const audio = new Audio(randomSound);
-            audio.volume = 0.2; // مستوى صوت منخفض ليكون جذاباً وغير مزعج
-            audio.play().catch(() => { /* معالجة قيود المتصفح */ });
+            audio.volume = 0.2; 
+            audio.play().catch(() => {});
         }
 
-        // تشغيل الرعد بشكل عشوائي كل 10-20 ثانية
         setInterval(() => {
             playThunder();
         }, Math.random() * 10000 + 10000);
 
-        // تشغيل أول رعد عند أول نقرة للمستخدم في الموقع
         document.addEventListener('click', () => {
             playThunder();
         }, { once: true });
