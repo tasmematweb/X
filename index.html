@@ -32,8 +32,15 @@
         nav ul { display: flex; list-style: none; gap: 40px; }
         nav a { text-decoration: none; color: #4a5568; font-weight: 600; font-size: 1.1rem; position: relative; transition: all 0.3s ease; }
         
-        /* تعديل المسافة هنا لإبعاد الصورة عن القائمة */
-        .featured-image-section { display: flex; justify-content: center; align-items: center; padding: 60px 20px 40px 20px; background-color: var(--white); }
+        /* زيادة المسافة العلوية للصورة الأولى لإبعادها عن الشريط العلوي */
+        .featured-image-section { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 120px 20px 40px 20px; /* زيادة padding-top من 60px إلى 120px */
+            background-color: var(--white); 
+            margin-top: 20px; /* إضافة margin إضافي */
+        }
         .featured-image-section img { max-width: 100%; max-height: 500px; border-radius: 25px; box-shadow: var(--shadow-lg); transition: transform 0.3s ease; }
 
         .hero { min-height: 80vh; display: flex; align-items: center; justify-content: center; position: relative; background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(226,232,240,0.6) 100%); overflow: hidden; width: 100%; }
@@ -63,7 +70,10 @@
             .header-content { flex-direction: column; gap: 15px; } 
             .hero h1 { font-size: 2rem; } 
             .stats { grid-template-columns: 1fr; padding: 0 40px; margin-bottom: 80px; } 
-            .featured-image-section { padding-top: 50px; } /* زيادة إضافية للموبايل */
+            .featured-image-section { 
+                padding: 100px 20px 40px 20px; /* تقليل المسافة قليلاً للموبايل */
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
