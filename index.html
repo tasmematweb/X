@@ -27,7 +27,21 @@
         
         header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); padding: 1.5rem 0; box-shadow: var(--shadow); position: fixed; width: 100%; top: 0; left: 0; right: 0; z-index: 1000; border-bottom: 1px solid var(--purple-light); }
         .header-content { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1300px; margin: 0 auto; padding: 0 20px; }
-        .logo { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        
+        /* تصميم اللوجو بالزوايا البالونية المطلوبة */
+        .logo { 
+            font-size: 1.8rem; 
+            font-weight: 900; 
+            background: linear-gradient(135deg, var(--purple-primary), var(--purple-secondary)); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            background-clip: text;
+            padding: 10px 25px;
+            border: 2px solid var(--purple-primary);
+            border-radius: 40px 10px 40px 10px; /* زوايا بالونية من الداخل */
+            position: relative;
+        }
+
         nav ul { display: flex; list-style: none; gap: 40px; }
         nav a { text-decoration: none; color: #4a5568; font-weight: 600; font-size: 1.1rem; position: relative; transition: all 0.3s ease; }
         
@@ -163,7 +177,7 @@
     <footer><p>جميع الحقوق محفوظة &copy; 2026 | تصميمات ويب</p></footer>
 
     <div style="position: fixed; bottom: 30px; left: 30px; display: flex; flex-direction: column; gap: 15px; z-index: 1000;">
-        <a href="https://www.instagram.com/tasmematweb?igsh=MWl4enptZzJibDNyNw==" class="whatsapp-float" target="_blank" style="position: static; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);">
+        <a href="https://www.instagram.com/tasmematweb?igsh=MWl4enptZzJibDNyNw==" class="whatsapp-float" target="_blank" style="position: static;">
             <i class="fab fa-instagram"></i>
         </a>
         <a href="https://wa.me/201119024874" class="whatsapp-float" target="_blank" style="position: static;">
