@@ -83,7 +83,6 @@
         .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; width: 100%; margin-top: 50px; }
         .service-card { background: rgba(255, 255, 255, 0.9); padding: 40px 30px; border-radius: 25px; box-shadow: var(--shadow); border: 1px solid rgba(107, 70, 193, 0.05); transition: all 0.4s ease; }
         
-        /* تنسيق الصورة الجديدة */
         .new-service-img { width: 100%; border-radius: 15px; margin-top: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 
         .form-section { padding: 100px 0; background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark)); width: 100%; position: relative; }
@@ -143,11 +142,18 @@
             <h2 style="color: var(--purple-primary); margin-bottom: 40px; font-size: 2.5rem;">خدماتنا المتميزة</h2>
             <div class="services-grid">
                 <div class="service-card"><i class="fas fa-laptop-code" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 20px; display: block;"></i><h3>تطوير الويب</h3><p>بناء مواقع إلكترونية سريعة ومستجابة مع محركات البحث.</p></div>
-                <div class="service-card"><i class="fas fa-mobile-alt" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 20px; display: block;"></i><h3>تطبيقات الجوال</h3><p>تصميم وتطوير تطبيقات أندرويد و iOS بأداء سلس.</p></div>
+                
+                <div class="service-card">
+                    <i class="fas fa-mobile-alt" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 20px; display: block;"></i>
+                    <h3>تطبيقات الجوال</h3>
+                    <p>تصميم وتطوير تطبيقات أندرويد و iOS بأداء سلس.</p>
+                    <img src="https://i.pinimg.com/736x/75/c3/fe/75c3fed7be770bc5144e5927f70a9d46.jpg" alt="تطوير تطبيقات الجوال" class="new-service-img">
+                </div>
+
                 <div class="service-card">
                     <i class="fas fa-paint-brush" style="font-size: 2rem; color: var(--purple-primary); margin-bottom: 20px; display: block;"></i>
                     <h3>تصميم UI/UX</h3>
-                    <p>خلق تجارب مستخدم فريدة وواجهات جذابة.</p>
+                    <p>خلق تجامر مستخدم فريدة وواجهات جذابة.</p>
                     <img src="https://i.pinimg.com/1200x/51/bb/75/51bb758cc840633dcc8bd71a885d8a3a.jpg" alt="واجهة مستخدم احترافية" class="new-service-img">
                 </div>
             </div>
@@ -214,4 +220,3 @@
     </script>
 </body>
 </html>
-
