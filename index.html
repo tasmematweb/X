@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1906,6 +1905,72 @@
         .gt-remarks { border-top: 2px solid #000; padding-top: 4px; margin-top: 4px; font-size: 12px; }
         .gt-remarks-label { font-weight: 700; direction: ltr; }
 
+        /* ===================== جدول الشحنات (قابل للسحب أفقيًا على الموبايل) ===================== */
+        .shipments-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #fff;
+        }
+        .shipments-table {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+            font-size: 13px;
+            color: #1e293b;
+        }
+        .shipments-table thead th {
+            background: #0d2137;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: right;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        .shipments-table tbody td {
+            padding: 8px;
+            border-bottom: 1px solid #eef2f6;
+            white-space: nowrap;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .shipments-table tbody tr:hover { background: #f7fafc; }
+        .shipments-table .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(46, 125, 50, 0.1);
+            border: 1px solid rgba(46, 125, 50, 0.2);
+            padding: 2px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #2e7d32;
+            white-space: nowrap;
+        }
+        .shipments-table .status-badge.pending {
+            background: rgba(255, 152, 0, 0.1);
+            border-color: rgba(255, 152, 0, 0.2);
+            color: #b45309;
+        }
+        .table-actions-cell { white-space: nowrap; }
+        .table-action-btn {
+            border: none;
+            background: #eef2ff;
+            color: #0076ff;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            margin-left: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .table-action-btn.danger { background: #fee2e2; color: #dc2626; }
+
         @media print {
             body * { visibility: hidden; }
             #waybillsOverlay, #waybillsOverlay * { visibility: visible; }
@@ -2276,6 +2341,13 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxCLRXUJALH9IwfDoh4sG2SugkQt-3y7qaW0xQ2fdHjgOZpJX1c411FcHZERTOswzs/exec";
+
+        // ============================================================
+        //  Supabase: قاعدة بيانات وسيطة سريعة للقراءة فقط (تسجيل الدخول + عرض الشحنات)
+        //  الكتابة (إضافة/حذف/تعديل شحنة) تفضل تعدي عبر Apps Script أعلاه
+        // ============================================================
+        const SUPABASE_URL = "https://klarfjrceqtbljabgfbl.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_zveXR4ywzPImAqEZbw_tHA_sQvAN_cD";
         const BASE_URL = "https://euxexpress.com";
 
         // ============================================================
@@ -2868,7 +2940,15 @@
             if (!phone || !password) { errorDiv.textContent = "يرجى إدخال رقم الهاتف وكلمة المرور"; return; }
             if (phone.length !== 11) { errorDiv.textContent = "رقم الهاتف يجب أن يكون 11 رقم"; return; }
             try {
-                const res = await fetch(`${API_URL}?action=login&phone=${phone}&password=${password}`);
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({ phone, password })
+                });
                 const data = await res.json();
                 if (data.success) {
                     currentUser = { phone, password, name: data.name, role: data.role };
@@ -3157,13 +3237,25 @@
         // ============================================
         // تحميل الشحنات
         // ============================================
+        async function fetchShipmentsFromSupabase() {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/get-shipments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ phone: currentUser.phone, password: currentUser.password })
+            });
+            return await res.json();
+        }
+
         async function loadMyShipments() {
             stopAutoUpdate();
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading"><div class="spinner"></div>جاري التحميل...</div>';
             try {
-                const res = await fetch(`${API_URL}?action=myShipments&phone=${currentUser.phone}&password=${currentUser.password}`);
-                const data = await res.json();
+                const data = await fetchShipmentsFromSupabase();
                 if (data.success) {
                     allShipmentsData = data.shipments || [];
                     if (allShipmentsData.length === 0) { 
@@ -3188,12 +3280,7 @@
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading"><div class="spinner"></div>جاري التحميل...</div>';
             try {
-                const params = new URLSearchParams();
-                params.append('action', 'allShipments');
-                params.append('adminPhone', currentUser.phone);
-                params.append('adminPassword', currentUser.password);
-                const res = await fetch(API_URL, { method: 'POST', body: params });
-                const data = await res.json();
+                const data = await fetchShipmentsFromSupabase();
                 if (data.success) {
                     allShipmentsData = data.shipments || [];
                     document.getElementById('totalCountSmall').textContent = allShipmentsData.length;
@@ -3329,6 +3416,95 @@
             `;
         }
 
+        function buildStatusBadgeHtml(s, hasTracking) {
+            let defaultStatus = 'جاري التحميل...';
+            let statusClass = 'pending';
+            let statusIcon = 'fa-spinner fa-spin';
+
+            const shipmentStatus = s.status || null;
+            if (shipmentStatus) {
+                if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
+                    defaultStatus = 'تم التسليم';
+                    statusClass = '';
+                    statusIcon = 'fa-check';
+                } else if (shipmentStatus.includes('تم الاستلام')) {
+                    defaultStatus = 'تم الاستلام';
+                    statusClass = '';
+                    statusIcon = 'fa-check';
+                } else {
+                    defaultStatus = shipmentStatus;
+                    statusClass = 'pending';
+                    statusIcon = 'fa-hourglass-half';
+                }
+            }
+            return `<span class="status-badge ${statusClass}"><i class="fas ${statusIcon}"></i> ${defaultStatus}</span>`;
+        }
+
+        function renderShipmentsTable(shipments, isAdmin) {
+            const rows = shipments.map(s => {
+                const trackingNum = s.trackingNumber || '';
+                const hasTracking = trackingNum && trackingNum.length > 3;
+                const displayName = s.receiverName || s.customerName || 'غير معروف';
+                const displayPhone = s.receiverPhone || s.customerPhone || '';
+                const displayAmount = s.amount || '0';
+                const statusBadge = buildStatusBadgeHtml(s, hasTracking);
+
+                let actionsHtml = '';
+                if (hasTracking) {
+                    actionsHtml += `<button class="table-action-btn" title="تتبع" onclick="event.stopPropagation(); trackShipment('${trackingNum}')"><i class="fas fa-search"></i></button>`;
+                }
+                if (!isAdmin && !hasTracking) {
+                    actionsHtml += `<button class="table-action-btn" title="تعديل" onclick="event.stopPropagation(); showEditShipmentForm('${s.id}')"><i class="fas fa-edit"></i></button>`;
+                    actionsHtml += `<button class="table-action-btn danger" title="حذف" onclick="event.stopPropagation(); deleteShipment('${s.id}')"><i class="fas fa-trash"></i></button>`;
+                }
+                if (isAdmin) {
+                    if (!hasTracking) {
+                        actionsHtml += `<button class="table-action-btn" title="اضافة تتبع" onclick="event.stopPropagation(); showAddTracking('${s.id}')"><i class="fas fa-qrcode"></i></button>`;
+                    }
+                    actionsHtml += `<button class="table-action-btn danger" title="حذف" onclick="event.stopPropagation(); deleteShipment('${s.id}')"><i class="fas fa-trash"></i></button>`;
+                }
+
+                return `
+                    <tr id="card-${s.id}" data-shipment='${JSON.stringify(s).replace(/'/g, "\\'")}'>
+                        <td>${trackingNum || '-'}</td>
+                        <td>${displayName}</td>
+                        <td dir="ltr">${displayPhone}</td>
+                        <td dir="ltr">${s.receiverPhone2 || '-'}</td>
+                        <td>${s.governorate || ''}</td>
+                        <td>${s.city || ''}</td>
+                        <td>${s.address || s.customerAddress || ''}</td>
+                        <td>${displayAmount} ج.م</td>
+                        <td>${statusBadge}</td>
+                        ${isAdmin ? `<td dir="ltr">${s.clientPhone || ''}</td>` : ''}
+                        <td class="table-actions-cell">${actionsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="shipments-table-wrap" style="grid-column:1 / -1;">
+                    <table class="shipments-table">
+                        <thead>
+                            <tr>
+                                <th>رقم التتبع</th>
+                                <th>الاسم</th>
+                                <th>الهاتف</th>
+                                <th>هاتف آخر</th>
+                                <th>المحافظة</th>
+                                <th>المدينة</th>
+                                <th>العنوان</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                                ${isAdmin ? '<th>رقم العميل</th>' : ''}
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         function renderShipments(shipments) {
             const content = document.getElementById('content');
             if (shipments.length === 0) {
@@ -3336,7 +3512,7 @@
                 return;
             }
             const isAdmin = currentUser && currentUser.role === 'admin';
-            content.innerHTML = shipments.map(s => createShipmentCard(s, isAdmin)).join('');
+            content.innerHTML = renderShipmentsTable(shipments, isAdmin);
         }
 
         function searchShipments() {
@@ -3362,7 +3538,7 @@
                 content.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>لا توجد نتائج مطابقة لـ "${query}"</p></div>`;
             } else {
                 const isAdmin = currentUser && currentUser.role === 'admin';
-                content.innerHTML = filtered.map(s => createShipmentCard(s, isAdmin)).join('');
+                content.innerHTML = renderShipmentsTable(filtered, isAdmin);
                 // تحديث أولي للنتائج
                 const shipmentsWithTracking = filtered.filter(s => s.trackingNumber && s.trackingNumber.length > 3);
                 if (shipmentsWithTracking.length > 0) {
