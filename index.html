@@ -3065,6 +3065,11 @@
                 statusSpan.className = 'status-badge pending';
                 statusSpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري التحميل...`;
             } else if (typeof newStatus === 'string') {
+                // مزامنة الحالة الجديدة مع النسخة المحلية من البيانات حتى لا يفسّرها
+                // التحديث الحي كأنها تغيير حقيقي ويعيد رسم الجدول بالكامل
+                const localShipment = allShipmentsData.find(s => String(s.id) === String(shipmentId));
+                if (localShipment) localShipment.status = newStatus;
+
                 if (newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
                     statusSpan.className = 'status-badge delivered';
                     statusSpan.innerHTML = `<i class="fas fa-check"></i> تم التسليم`;
@@ -3239,7 +3244,7 @@
         function startLiveRefresh() {
             stopLiveRefresh();
             liveRefreshInterval = setInterval(async () => {
-                if (isLiveRefreshing || !currentUser) return;
+                if (isLiveRefreshing || !currentUser || isSearchActive) return;
                 isLiveRefreshing = true;
                 try {
                     const data = await fetchShipmentsFromSupabase();
