@@ -3052,6 +3052,11 @@
         }
 
         function updateShipmentStatusCard(shipmentId, newStatus) {
+            const idStr = String(shipmentId);
+
+            // إذا كانت الشحنة مثبتة، لا نلمسها إطلاقًا
+            if (stabilizedShipments.has(idStr)) return false;
+
             const row = document.getElementById(`card-${shipmentId}`);
             if (!row) return false;
 
@@ -3065,11 +3070,11 @@
                 statusSpan.className = 'status-badge pending';
                 statusSpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري التحميل...`;
             } else if (typeof newStatus === 'string') {
-                const localShipment = allShipmentsData.find(s => String(s.id) === String(shipmentId));
+                const localShipment = allShipmentsData.find(s => String(s.id) === idStr);
                 if (localShipment) localShipment.status = newStatus;
 
                 // تثبيت الشحنة نهائيًا في هذه الجلسة بمجرد وصول حالة حقيقية
-                stabilizedShipments.add(String(shipmentId));
+                stabilizedShipments.add(idStr);
 
                 if (newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
                     statusSpan.className = 'status-badge delivered';
@@ -3103,20 +3108,26 @@
         // التحديث الأولي للشحنات (مرة واحدة عند التحميل)
         // ============================================
         async function initialShipmentUpdate() {
-            const shipmentsWithTracking = allShipmentsData.filter(s => s.trackingNumber && s.trackingNumber.length > 3);
+            const shipmentsWithTracking = allShipmentsData.filter(s =>
+                s.trackingNumber &&
+                s.trackingNumber.length > 3 &&
+                !stabilizedShipments.has(String(s.id))
+            );
             if (shipmentsWithTracking.length === 0) return;
 
-            // تحديث كل الشحنات دفعة واحدة
             const chunkSize = 50;
             for (let i = 0; i < shipmentsWithTracking.length; i += chunkSize) {
                 const chunk = shipmentsWithTracking.slice(i, i + chunkSize);
-                chunk.forEach(s => showSearchingIndicator(s.id));
+                chunk.forEach(s => {
+                    if (!stabilizedShipments.has(String(s.id))) showSearchingIndicator(s.id);
+                });
                 const promises = chunk.map(async (s) => {
                     const status = await fetchTrackingStatusDirect(s.trackingNumber);
                     return { id: s.id, status };
                 });
                 const results = await Promise.all(promises);
                 results.forEach(({ id, status }) => {
+                    if (stabilizedShipments.has(String(id))) return;
                     updateShipmentStatusCard(id, status);
                 });
             }
@@ -3128,65 +3139,60 @@
         let isAutoUpdating = false;
 
         async function autoUpdatePendingShipments() {
-            // منع تشغيل نسختين من الفحص في نفس الوقت (كان يسبب تعارض
-            // في النتائج وتذبذب الحالة بين "تم التسليم" و"تم الاستلام")
             if (isAutoUpdating) return;
             isAutoUpdating = true;
             try {
-            // البحث عن الشحنات التي لا تزال "جاري التحميل..."
-            const pendingShipments = [];
-            for (const s of allShipmentsData) {
-                if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
-                if (stabilizedShipments.has(String(s.id))) continue;
-
-                const card = document.getElementById(`card-${s.id}`);
-                if (!card) continue;
-
-                const badge = card.querySelector('.status-badge');
-                if (badge && badge.textContent.trim().includes('جاري التحميل')) {
-                    pendingShipments.push(s);
-                }
-            }
-
-            if (pendingShipments.length === 0) {
-                // لا توجد شحنات بحاجة للتحديث، إيقاف التحديث التلقائي
-                stopAutoUpdate();
-                return;
-            }
-
-            // تحديث الشحنات المعلقة فقط
-            const chunkSize = 50;
-            for (let i = 0; i < pendingShipments.length; i += chunkSize) {
-                const chunk = pendingShipments.slice(i, i + chunkSize);
-                chunk.forEach(s => showSearchingIndicator(s.id));
-                const promises = chunk.map(async (s) => {
-                    const status = await fetchTrackingStatusDirect(s.trackingNumber);
-                    return { id: s.id, status };
-                });
-                const results = await Promise.all(promises);
-                results.forEach(({ id, status }) => {
-                    updateShipmentStatusCard(id, status);
-                });
-            }
-
-            // التحقق مرة أخرى بعد التحديث
-            setTimeout(() => {
-                let stillPending = false;
+                const pendingShipments = [];
                 for (const s of allShipmentsData) {
                     if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
                     if (stabilizedShipments.has(String(s.id))) continue;
+
                     const card = document.getElementById(`card-${s.id}`);
                     if (!card) continue;
+
                     const badge = card.querySelector('.status-badge');
                     if (badge && badge.textContent.trim().includes('جاري التحميل')) {
-                        stillPending = true;
-                        break;
+                        pendingShipments.push(s);
                     }
                 }
-                if (!stillPending) {
+
+                if (pendingShipments.length === 0) {
                     stopAutoUpdate();
+                    return;
                 }
-            }, 1000);
+
+                const chunkSize = 50;
+                for (let i = 0; i < pendingShipments.length; i += chunkSize) {
+                    const chunk = pendingShipments.slice(i, i + chunkSize);
+                    chunk.forEach(s => {
+                        if (!stabilizedShipments.has(String(s.id))) showSearchingIndicator(s.id);
+                    });
+                    const promises = chunk.map(async (s) => {
+                        const status = await fetchTrackingStatusDirect(s.trackingNumber);
+                        return { id: s.id, status };
+                    });
+                    const results = await Promise.all(promises);
+                    results.forEach(({ id, status }) => {
+                        if (stabilizedShipments.has(String(id))) return;
+                        updateShipmentStatusCard(id, status);
+                    });
+                }
+
+                setTimeout(() => {
+                    let stillPending = false;
+                    for (const s of allShipmentsData) {
+                        if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
+                        if (stabilizedShipments.has(String(s.id))) continue;
+                        const card = document.getElementById(`card-${s.id}`);
+                        if (!card) continue;
+                        const badge = card.querySelector('.status-badge');
+                        if (badge && badge.textContent.trim().includes('جاري التحميل')) {
+                            stillPending = true;
+                            break;
+                        }
+                    }
+                    if (!stillPending) stopAutoUpdate();
+                }, 1000);
             } finally {
                 isAutoUpdating = false;
             }
@@ -3265,30 +3271,25 @@
                     if (data.success) {
                         const fresh = data.shipments || [];
 
-                        // حماية الشحنات المثبتة: نحتفظ بالحالة المعروضة حاليًا في الشارة
-                        // لأي شحنة داخل stabilizedShipments، حتى لا يدهسها التحديث الحي
-                        // ويعيدها للحالة القديمة المخزنة في قاعدة البيانات.
-                        fresh.forEach(fs => {
+                        // أي شحنة مثبتة: نتجاهل نسختها القادمة تمامًا ونُبقي نسختنا المحلية
+                        const merged = fresh.map(fs => {
                             if (stabilizedShipments.has(String(fs.id))) {
-                                const card = document.getElementById(`card-${fs.id}`);
-                                if (card) {
-                                    const badge = card.querySelector('.status-badge');
-                                    if (badge) {
-                                        const currentText = badge.textContent.trim();
-                                        if (currentText.includes('تم التسليم')) {
-                                            fs.status = 'تم التسليم';
-                                        } else if (currentText.includes('تم الاستلام')) {
-                                            fs.status = 'تم الاستلام';
-                                        }
-                                    }
-                                }
+                                const local = allShipmentsData.find(s => String(s.id) === String(fs.id));
+                                return local || fs;
                             }
+                            return fs;
                         });
 
-                        const freshStr = JSON.stringify(fresh);
+                        // إضافة أي شحنات جديدة لم تكن موجودة (لا يمكن أن تكون مثبتة)
+                        const freshIds = new Set(merged.map(s => String(s.id)));
+                        allShipmentsData.forEach(local => {
+                            if (!freshIds.has(String(local.id))) merged.push(local);
+                        });
+
+                        const freshStr = JSON.stringify(merged);
                         const currentStr = JSON.stringify(allShipmentsData);
                         if (freshStr !== currentStr) {
-                            allShipmentsData = fresh;
+                            allShipmentsData = merged;
                             if (!isSearchActive) {
                                 const countEl = document.getElementById('totalCountSmall');
                                 if (countEl) countEl.textContent = allShipmentsData.length;
@@ -3296,23 +3297,6 @@
                                     document.getElementById('content').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>لا توجد شحنات حتى الآن</p></div>';
                                 } else {
                                     renderShipments(allShipmentsData);
-                                    // بعد إعادة الرسم، نعيد تفعيل الحالة المثبتة بصريًا
-                                    // لأن renderShipments يبني الشارة من s.status فقط
-                                    stabilizedShipments.forEach(id => {
-                                        const card = document.getElementById(`card-${id}`);
-                                        if (!card) return;
-                                        const badge = card.querySelector('.status-badge');
-                                        if (!badge) return;
-                                        const localShipment = allShipmentsData.find(s => String(s.id) === String(id));
-                                        if (!localShipment || !localShipment.status) return;
-                                        if (localShipment.status.includes('تم التسليم') || localShipment.status.includes('Delivered')) {
-                                            badge.className = 'status-badge delivered';
-                                            badge.innerHTML = '<i class="fas fa-check"></i> تم التسليم';
-                                        } else if (localShipment.status.includes('تم الاستلام')) {
-                                            badge.className = 'status-badge received';
-                                            badge.innerHTML = '<i class="fas fa-check"></i> تم الاستلام';
-                                        }
-                                    });
                                 }
                             }
                         }
