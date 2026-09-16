@@ -46,9 +46,6 @@
             display: block;
         }
 
-        /* ============================================
-           الشريط العلوي الجديد - المتدرج العصري (النموذج 4)
-           ============================================ */
         .header-new {
             background: linear-gradient(135deg, #0a1628, #003d7a);
             padding: 18px 30px;
@@ -111,9 +108,6 @@
             50% { transform: scale(1.6); opacity: 1; }
         }
 
-        /* ============================================
-           الشريط القديم - نبقيه للتوافق
-           ============================================ */
         header {
             background-color: var(--secondary-color);
             padding: 35px 8%;
@@ -947,9 +941,6 @@
             font-size: 16px;
         }
 
-        /* ============================================
-           تصميم كارت الطلب الجديد - EUX (أفقي - بطاقتين بجانب بعض)
-           ============================================ */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1116,7 +1107,6 @@
             transform: scale(1.02);
         }
 
-        /* ===== التعديلات على العناصر القديمة في البطاقة ===== */
         .shipment-card .delivery-status {
             display: none;
         }
@@ -1180,7 +1170,6 @@
             background: #218838;
         }
 
-        /* ===== استجابة ===== */
         @media (max-width: 768px) {
             .cards-grid {
                 grid-template-columns: 1fr;
@@ -1197,7 +1186,6 @@
             }
         }
 
-        /* ===== باقي الأنماط ===== */
         .shipment-card .last-update {
             font-size: 12px;
             color: #888;
@@ -1841,7 +1829,6 @@
             }
         }
 
-        /* ===================== طباعة البوليصة (تصميم مطابق لبوليصة GT) ===================== */
         .gt-ticket {
             border: 2px solid #000;
             background: #fff;
@@ -1905,7 +1892,6 @@
         .gt-remarks { border-top: 2px solid #000; padding-top: 4px; margin-top: 4px; font-size: 12px; }
         .gt-remarks-label { font-weight: 700; direction: ltr; }
 
-        /* ===================== جدول الشحنات (قابل للسحب أفقيًا على الموبايل) ===================== */
         .shipments-table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -1992,11 +1978,7 @@
 </head>
 <body oncontextmenu="return false;">
 
-    <!-- ============================================
-    صفحة الهبوط (Landing Page) مع الشريط الجديد
-    ============================================ -->
     <div id="landingPage">
-        <!-- الشريط العلوي الجديد -->
         <header class="header-new">
             <div class="logo-container">
                 <div class="divider"></div>
@@ -2121,17 +2103,10 @@
         </footer>
     </div>
 
-    <!-- ============================================
-    نظام التتبع (Tracking App)
-    ============================================ -->
     <div id="trackingApp" class="hidden">
         <div class="tracking-container" id="app">
 
-            <!-- ==========================================
-            صفحة تسجيل الدخول (Login) مع الشريط الجديد
-            ========================================== -->
             <div id="loginPage" class="login-page">
-                <!-- الشريط العلوي الجديد -->
                 <header class="header-new" style="border-radius: 16px 16px 0 0; margin-bottom: 20px;">
                     <div class="logo-container">
                         <div class="divider"></div>
@@ -2183,11 +2158,7 @@
                 <p class="error-msg" id="loginError"></p>
             </div>
 
-            <!-- ==========================================
-            لوحة التحكم (Dashboard) مع الشريط الجديد
-            ========================================== -->
             <div id="dashboard" class="hidden">
-                <!-- الشريط العلوي الجديد -->
                 <header class="header-new" style="border-radius: 16px 16px 0 0; margin-bottom: 20px;">
                     <div class="logo-container">
                         <div class="divider"></div>
@@ -2266,12 +2237,7 @@
                 <div id="content" class="cards-grid"></div>
             </div>
 
-            <!-- ==========================================
-            صفحة تسجيل الشحنة العامة (Public Order Page)
-            مع الشريط الجديد وعداد منع التكرار
-            ========================================== -->
             <div id="publicOrderPage" class="hidden">
-                <!-- الشريط العلوي الجديد -->
                 <header class="header-new" style="border-radius: 16px 16px 0 0; margin-bottom: 20px;">
                     <div class="logo-container">
                         <div class="divider"></div>
@@ -2308,7 +2274,6 @@
                 <div class="form-group"><label>وزن الشحنة *</label><input id="pf_weight" type="number" placeholder="الوزن بالكيلو" dir="ltr" value="1"></div>
                 <div class="form-group"><label>ملاحظات</label><textarea id="pf_notes" placeholder="ملاحظات اضافية"></textarea></div>
                 
-                <!-- زر تسجيل الشحنة مع عداد منع التكرار -->
                 <button class="btn-eux" id="publicSubmitBtn" onclick="submitPublicOrder()" style="width:100%;padding:14px;border-radius:12px;font-size:16px;">
                     <span class="inner">تسجيل الشحنة</span>
                     <span class="fold"></span>
@@ -2352,17 +2317,10 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxCLRXUJALH9IwfDoh4sG2SugkQt-3y7qaW0xQ2fdHjgOZpJX1c411FcHZERTOswzs/exec";
 
-        // ============================================================
-        //  Supabase: قاعدة بيانات وسيطة سريعة للقراءة فقط (تسجيل الدخول + عرض الشحنات)
-        //  الكتابة (إضافة/حذف/تعديل شحنة) تفضل تعدي عبر Apps Script أعلاه
-        // ============================================================
         const SUPABASE_URL = "https://klarfjrceqtbljabgfbl.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_zveXR4ywzPImAqEZbw_tHA_sQvAN_cD";
         const BASE_URL = "https://euxexpress.com";
 
-        // ============================================================
-        //  إعدادات الاتصال الفعلي بـ GT لإنشاء الشحنات وتوليد أرقام التتبع
-        // ============================================================
         const GT_CONFIG = {
             apiAccount: '866958120939696147',
             privateKey: '29535fad70ca4688aaa5b462320eb096',
@@ -2372,14 +2330,12 @@
         };
         const GT_PROXY_URL = 'https://script.google.com/macros/s/AKfycbzogeH2yBYleigMH7MG2OT-uf1ep5JsC94FCDFDnw-Rj2CKEkFR_tTCzHZ0eVyJIgU/exec';
 
-        // digest داخل bizContent (تم التأكد من صحته مسبقًا)
         function generateBodyDigest(customerCode, plainPassword, privateKey) {
             const cipherText = CryptoJS.MD5(plainPassword + 'jadada236t2').toString().toUpperCase();
             const signatureWords = CryptoJS.MD5(customerCode + cipherText + privateKey);
             return CryptoJS.enc.Base64.stringify(signatureWords);
         }
 
-        // digest الخاص بالـ Header (صيغة مختلفة: base64(md5(bizContentJson + privateKey)))
         function generateHeaderDigest(bizContentJsonString, privateKey) {
             const signatureWords = CryptoJS.MD5(bizContentJsonString + privateKey);
             return CryptoJS.enc.Base64.stringify(signatureWords);
@@ -2469,9 +2425,6 @@
             if (!data.success) throw new Error(data.msg || 'فشل حفظ رقم التتبع في الشيت');
         }
 
-        // ============================================================
-        //  واجهة "طباعة البوليصة"
-        // ============================================================
         function getPendingWaybillShipments() {
             return allShipmentsData.filter(s => !s.trackingNumber || String(s.trackingNumber).trim().length <= 3);
         }
@@ -2553,9 +2506,6 @@
 
             let results = await Promise.all(pending.map(s => processOneWaybill(s)));
 
-            // إعادة تحميل بيانات الشحنات من الشيت لتصحيح أي حالة "فشل" وهمية
-            // (قد يفشل الاتصال من طرف المتصفح بسبب انقطاع/بطء الشبكة تحت الضغط،
-            // بينما تكون العملية فعليًا قد نجحت وتم حفظ رقم التتبع في الشيت)
             if (currentUser.role === 'admin') { await loadAllShipments(); } else { await loadMyShipments(); }
 
             results = results.map(r => {
@@ -2563,7 +2513,6 @@
                 const fresh = allShipmentsData.find(x => String(x.id) === String(r.shipment.id));
                 const freshTracking = fresh && String(fresh.trackingNumber || '').trim();
                 if (freshTracking && freshTracking.length > 3) {
-                    // العملية نجحت فعليًا رغم فشل الاتصال ظاهريًا
                     const statusEl = document.getElementById(`pendingStatus-${r.shipment.id}`);
                     if (statusEl) statusEl.innerHTML = '<span style="color:#16a34a;">تم ✓</span>';
                     return { shipment: fresh, billCode: freshTracking, sortingCode: '', success: true };
@@ -2644,9 +2593,6 @@
         let autoUpdateInterval = null;
         let stabilizedShipments = new Set();
 
-        // ============================================
-        // إضافة مركز "أبو حماد" في محافظة الشرقية
-        // ============================================
         const governorates = {
             'الشرقية': ['بلبيس', 'انشاص الرمل', 'أولاد صقر', 'الحسينية', 'ديرب نجم', 'فاقوس', 'كفر صقر', 'مشتول السوق', 'منيا القمح', 'الصالحية القديمة', 'الصالحية الجديدة', 'صان الحجر', 'مدينة العاشر من رمضان', 'أبو حماد'],
             'الجيزة': ['مدينة السادس من أكتوبر', 'مدينة الشيخ زايد', 'العياط', 'الحوامدية', 'البدرشين', 'الصف', 'العمرانية', 'أطفيح', 'الواحات البحرية', 'الجيزة', 'حدائق الاهرام', 'فيصل', 'الهرم', 'أبو النمرس', 'العجوزة', 'الوراق', 'أوسيم', 'بولاق الدكرور', 'الدقي', 'أرض اللواء', 'المهندسين', 'كرداسة', 'إمبابة', 'منشأة القناطر'],
@@ -2805,9 +2751,6 @@
             document.body.style.background = 'linear-gradient(135deg, #e8f0fe, #d4e4f7)';
         }
 
-        // ============================================
-        // دالة تسجيل الشحنة العامة مع عداد منع التكرار
-        // ============================================
         async function submitPublicOrder() {
             if (isPublicSubmitting) {
                 showToast('يرجى الانتظار 10 ثوانٍ قبل تسجيل شحنة أخرى', 'error');
@@ -2999,22 +2942,17 @@
             document.getElementById('clientsBtn').classList.toggle('hidden', !isAdmin);
             document.getElementById('allShipmentsBtn').classList.toggle('hidden', !isAdmin);
             
-            // تحميل البيانات الأولية
             if (isAdmin) {
                 loadAllShipments();
             } else {
                 loadMyShipments();
             }
             
-            // بدء التحديث التلقائي بعد التحميل الأولي
             setTimeout(() => {
                 startAutoUpdate();
             }, 2000);
         }
 
-        // ============================================
-        // جلب حالة الشحنة مباشرة من API
-        // ============================================
         async function fetchTrackingStatusDirect(trackingNumber) {
             if (!trackingNumber || trackingNumber.length < 3) return null;
             try {
@@ -3023,7 +2961,6 @@
                 if (data.code === "1" && data.data && data.data[0]) {
                     const details = data.data[0].details || [];
 
-                    // فحص كل الأحداث بترتيب أولوية صريح من الأعلى للأدنى
                     let hasReturn = false;
                     let hasDelivered = false;
 
@@ -3049,7 +2986,6 @@
                         }
                     }
 
-                    // الأولوية: مرتجع > تم التسليم > الحالة العامة من السيرفر
                     if (hasReturn) return 'مرتجع';
                     if (hasDelivered) return 'تم التسليم';
 
@@ -3062,9 +2998,6 @@
             }
         }
 
-        // ============================================
-        // تحديث حالة الشحنة في البطاقة
-        // ============================================
         function showSearchingIndicator(shipmentId) {
             const row = document.getElementById(`card-${shipmentId}`);
             if (!row) return;
@@ -3077,7 +3010,6 @@
         function updateShipmentStatusCard(shipmentId, newStatus) {
             const idStr = String(shipmentId);
 
-            // إذا كانت الشحنة مثبتة، لا نلمسها إطلاقًا
             if (stabilizedShipments.has(idStr)) return false;
 
             const row = document.getElementById(`card-${shipmentId}`);
@@ -3096,7 +3028,6 @@
                 const localShipment = allShipmentsData.find(s => String(s.id) === idStr);
                 if (localShipment) localShipment.status = newStatus;
 
-                // تثبيت الشحنة نهائيًا في هذه الجلسة بمجرد وصول حالة حقيقية
                 stabilizedShipments.add(idStr);
 
                 if (newStatus === 'مرتجع') {
@@ -3117,22 +3048,15 @@
             return isLoading;
         }
 
-        // ============================================
-        // تحديث حالة شحنة واحدة فقط
-        // ============================================
         async function updateSingleShipment(shipment) {
             if (!shipment.trackingNumber || shipment.trackingNumber.length < 3) return false;
             
             const status = await fetchTrackingStatusDirect(shipment.trackingNumber);
             const stillLoading = updateShipmentStatusCard(shipment.id, status);
             
-            // إذا تغيرت الحالة وليست "جاري التحميل..."، نوقف التحديث لهذه الشحنة
             return stillLoading;
         }
 
-        // ============================================
-        // التحديث الأولي للشحنات (مرة واحدة عند التحميل)
-        // ============================================
         async function initialShipmentUpdate() {
             const shipmentsWithTracking = allShipmentsData.filter(s =>
                 s.trackingNumber &&
@@ -3159,9 +3083,6 @@
             }
         }
 
-        // ============================================
-        // التحديث التلقائي - فقط للشحنات التي لا تزال "جاري التحميل..."
-        // ============================================
         let isAutoUpdating = false;
 
         async function autoUpdatePendingShipments() {
@@ -3224,13 +3145,9 @@
             }
         }
 
-        // ============================================
-        // بدء التحديث التلقائي (يتم استدعاؤها بعد التحميل الأولي)
-        // ============================================
         function startAutoUpdate() {
             stopAutoUpdate();
             
-            // لا نبدأ التحديث التلقائي إلا إذا كانت هناك شحنات بحالة "جاري التحميل..."
             let hasPending = false;
             for (const s of allShipmentsData) {
                 if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
@@ -3245,11 +3162,9 @@
             }
 
             if (!hasPending) {
-                // لا توجد شحنات بحاجة للتحديث
                 return;
             }
 
-            // بدء التحديث التلقائي كل 5 ثوانٍ
             autoUpdateInterval = setInterval(() => {
                 autoUpdatePendingShipments();
             }, 5000);
@@ -3260,12 +3175,8 @@
                 clearInterval(autoUpdateInterval);
                 autoUpdateInterval = null;
             }
-            stabilizedShipments.clear();
         }
 
-        // ============================================
-        // تحميل الشحنات
-        // ============================================
         async function fetchShipmentsFromSupabase() {
             const res = await fetch(`${SUPABASE_URL}/functions/v1/get-shipments`, {
                 method: 'POST',
@@ -3279,11 +3190,6 @@
             return await res.json();
         }
 
-        // ============================================
-        // تحديث حي صامت كل ثانية: يجلب أي تغيير جديد (سواء تم
-        // من الموقع نفسه أو من تعديل يدوي مباشر على الشيت)
-        // ولا يعيد رسم الجدول إلا لو البيانات فعليًا اتغيرت
-        // ============================================
         let liveRefreshInterval = null;
         let isLiveRefreshing = false;
 
@@ -3297,19 +3203,12 @@
                     if (data.success) {
                         const fresh = data.shipments || [];
 
-                        // أي شحنة مثبتة: نتجاهل نسختها القادمة تمامًا ونُبقي نسختنا المحلية
                         const merged = fresh.map(fs => {
-                            if (stabilizedShipments.has(String(fs.id))) {
-                                const local = allShipmentsData.find(s => String(s.id) === String(fs.id));
-                                return local || fs;
+                            const local = allShipmentsData.find(s => String(s.id) === String(fs.id));
+                            if (local && (stabilizedShipments.has(String(fs.id)) || (local.status && local.status !== 'جاري التحميل...'))) {
+                                return { ...fs, status: local.status };
                             }
                             return fs;
-                        });
-
-                        // إضافة أي شحنات جديدة لم تكن موجودة (لا يمكن أن تكون مثبتة)
-                        const freshIds = new Set(merged.map(s => String(s.id)));
-                        allShipmentsData.forEach(local => {
-                            if (!freshIds.has(String(local.id))) merged.push(local);
                         });
 
                         const freshStr = JSON.stringify(merged);
@@ -3328,11 +3227,10 @@
                         }
                     }
                 } catch (e) {
-                    // نتجاهل أخطاء التحديث الصامت حتى لا تزعج المستخدم كل ثانية
                 } finally {
                     isLiveRefreshing = false;
                 }
-            }, 1000);
+            }, 2000);
         }
 
         function stopLiveRefresh() {
@@ -3356,9 +3254,7 @@
                     } else { 
                         document.getElementById('totalCountSmall').textContent = allShipmentsData.length;
                         renderShipments(allShipmentsData);
-                        // تحديث أولي للشحنات (مرة واحدة)
                         await initialShipmentUpdate();
-                        // بدء التحديث التلقائي للشحنات المعلقة فقط
                         setTimeout(() => {
                             startAutoUpdate();
                         }, 1000);
@@ -3378,9 +3274,7 @@
                     allShipmentsData = data.shipments || [];
                     document.getElementById('totalCountSmall').textContent = allShipmentsData.length;
                     renderShipments(allShipmentsData);
-                    // تحديث أولي للشحنات (مرة واحدة)
                     await initialShipmentUpdate();
-                    // بدء التحديث التلقائي للشحنات المعلقة فقط
                     setTimeout(() => {
                         startAutoUpdate();
                     }, 1000);
@@ -3389,9 +3283,6 @@
             startLiveRefresh();
         }
 
-        // ============================================
-        // إنشاء بطاقة الشحنة
-        // ============================================
         function createShipmentCard(s, isAdmin = false) {
             let actions = '';
             const trackingNum = s.trackingNumber || '';
@@ -3435,7 +3326,6 @@
             const displayPhone = s.receiverPhone || s.customerPhone || '';
             const displayAmount = s.amount || '0';
 
-            // الحالة الافتراضية
             let defaultStatus = 'جاري التحميل...';
             let statusClass = 'pending';
             let statusIcon = 'fa-spinner fa-spin';
@@ -3872,9 +3762,6 @@
             } catch (e) { showToast('فشل الاتصال بالخادم', 'error'); }
         }
 
-        // ============================================
-        // دالة الترجمة
-        // ============================================
         async function translateProblemText(text) {
             if (!text) return text;
             if (/[\u0600-\u06FF]/.test(text) && !/[a-zA-Z]/.test(text)) return text;
@@ -3929,9 +3816,6 @@
             return translated.trim() || text;
         }
 
-        // ============================================
-        // دالة التتبع (نافذة منبثقة)
-        // ============================================
         async function trackShipment(billCode) {
             document.getElementById('modal').classList.remove('hidden');
             document.getElementById('modalBody').innerHTML = '<div class="loading"><div class="spinner"></div>جاري تتبع الشحنة...</div>';
