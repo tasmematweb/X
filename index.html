@@ -3264,6 +3264,27 @@
                     const data = await fetchShipmentsFromSupabase();
                     if (data.success) {
                         const fresh = data.shipments || [];
+
+                        // حماية الشحنات المثبتة: نحتفظ بالحالة المعروضة حاليًا في الشارة
+                        // لأي شحنة داخل stabilizedShipments، حتى لا يدهسها التحديث الحي
+                        // ويعيدها للحالة القديمة المخزنة في قاعدة البيانات.
+                        fresh.forEach(fs => {
+                            if (stabilizedShipments.has(String(fs.id))) {
+                                const card = document.getElementById(`card-${fs.id}`);
+                                if (card) {
+                                    const badge = card.querySelector('.status-badge');
+                                    if (badge) {
+                                        const currentText = badge.textContent.trim();
+                                        if (currentText.includes('تم التسليم')) {
+                                            fs.status = 'تم التسليم';
+                                        } else if (currentText.includes('تم الاستلام')) {
+                                            fs.status = 'تم الاستلام';
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
                         const freshStr = JSON.stringify(fresh);
                         const currentStr = JSON.stringify(allShipmentsData);
                         if (freshStr !== currentStr) {
@@ -3275,6 +3296,23 @@
                                     document.getElementById('content').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>لا توجد شحنات حتى الآن</p></div>';
                                 } else {
                                     renderShipments(allShipmentsData);
+                                    // بعد إعادة الرسم، نعيد تفعيل الحالة المثبتة بصريًا
+                                    // لأن renderShipments يبني الشارة من s.status فقط
+                                    stabilizedShipments.forEach(id => {
+                                        const card = document.getElementById(`card-${id}`);
+                                        if (!card) return;
+                                        const badge = card.querySelector('.status-badge');
+                                        if (!badge) return;
+                                        const localShipment = allShipmentsData.find(s => String(s.id) === String(id));
+                                        if (!localShipment || !localShipment.status) return;
+                                        if (localShipment.status.includes('تم التسليم') || localShipment.status.includes('Delivered')) {
+                                            badge.className = 'status-badge delivered';
+                                            badge.innerHTML = '<i class="fas fa-check"></i> تم التسليم';
+                                        } else if (localShipment.status.includes('تم الاستلام')) {
+                                            badge.className = 'status-badge received';
+                                            badge.innerHTML = '<i class="fas fa-check"></i> تم الاستلام';
+                                        }
+                                    });
                                 }
                             }
                         }
