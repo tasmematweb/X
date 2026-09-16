@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -3125,7 +3124,14 @@
         // ============================================
         // التحديث التلقائي - فقط للشحنات التي لا تزال "جاري التحميل..."
         // ============================================
+        let isAutoUpdating = false;
+
         async function autoUpdatePendingShipments() {
+            // منع تشغيل نسختين من الفحص في نفس الوقت (كان يسبب تعارض
+            // في النتائج وتذبذب الحالة بين "تم التسليم" و"تم الاستلام")
+            if (isAutoUpdating) return;
+            isAutoUpdating = true;
+            try {
             // البحث عن الشحنات التي لا تزال "جاري التحميل..."
             const pendingShipments = [];
             for (const s of allShipmentsData) {
@@ -3178,6 +3184,9 @@
                     stopAutoUpdate();
                 }
             }, 1000);
+            } finally {
+                isAutoUpdating = false;
+            }
         }
 
         // ============================================
@@ -4054,3 +4063,5 @@
             }
         });
     </script>
+</body>
+</html>
