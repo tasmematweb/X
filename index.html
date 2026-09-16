@@ -2642,6 +2642,7 @@
         let isSubmitting = false;
         let isPublicSubmitting = false;
         let autoUpdateInterval = null;
+        let stabilizedShipments = new Set();
 
         // ============================================
         // إضافة مركز "أبو حماد" في محافظة الشرقية
@@ -3064,10 +3065,11 @@
                 statusSpan.className = 'status-badge pending';
                 statusSpan.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري التحميل...`;
             } else if (typeof newStatus === 'string') {
-                // مزامنة الحالة الجديدة مع النسخة المحلية من البيانات حتى لا يفسّرها
-                // التحديث الحي كأنها تغيير حقيقي ويعيد رسم الجدول بالكامل
                 const localShipment = allShipmentsData.find(s => String(s.id) === String(shipmentId));
                 if (localShipment) localShipment.status = newStatus;
+
+                // تثبيت الشحنة نهائيًا في هذه الجلسة بمجرد وصول حالة حقيقية
+                stabilizedShipments.add(String(shipmentId));
 
                 if (newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
                     statusSpan.className = 'status-badge delivered';
@@ -3081,7 +3083,6 @@
                 }
             }
 
-            // إرجاع ما إذا كانت الحالة لا تزال "جاري التحميل..."
             return isLoading;
         }
 
@@ -3136,10 +3137,11 @@
             const pendingShipments = [];
             for (const s of allShipmentsData) {
                 if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
-                
+                if (stabilizedShipments.has(String(s.id))) continue;
+
                 const card = document.getElementById(`card-${s.id}`);
                 if (!card) continue;
-                
+
                 const badge = card.querySelector('.status-badge');
                 if (badge && badge.textContent.trim().includes('جاري التحميل')) {
                     pendingShipments.push(s);
@@ -3172,6 +3174,7 @@
                 let stillPending = false;
                 for (const s of allShipmentsData) {
                     if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
+                    if (stabilizedShipments.has(String(s.id))) continue;
                     const card = document.getElementById(`card-${s.id}`);
                     if (!card) continue;
                     const badge = card.querySelector('.status-badge');
@@ -3199,6 +3202,7 @@
             let hasPending = false;
             for (const s of allShipmentsData) {
                 if (!s.trackingNumber || s.trackingNumber.length < 3) continue;
+                if (stabilizedShipments.has(String(s.id))) continue;
                 const card = document.getElementById(`card-${s.id}`);
                 if (!card) continue;
                 const badge = card.querySelector('.status-badge');
@@ -3224,6 +3228,7 @@
                 clearInterval(autoUpdateInterval);
                 autoUpdateInterval = null;
             }
+            stabilizedShipments.clear();
         }
 
         // ============================================
