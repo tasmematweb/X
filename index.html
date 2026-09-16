@@ -3021,21 +3021,44 @@
                 const res = await fetch(`${API_URL}?action=track&billCode=${trackingNumber}`);
                 const data = await res.json();
                 if (data.code === "1" && data.data && data.data[0]) {
-                    let finalStatus = data.data[0].status || null;
                     const details = data.data[0].details || [];
-                    for (const d of details) { 
-                        const desc = d.desc || '';
-                        if (desc.includes('تم التسليم') || desc.includes('Delivered')) { 
-                            finalStatus = 'تم التسليم'; 
-                            break; 
+
+                    // فحص كل الأحداث بترتيب أولوية صريح من الأعلى للأدنى
+                    let hasReturn = false;
+                    let hasDelivered = false;
+
+                    for (const d of details) {
+                        const desc = String(d.desc || '');
+                        const problem = String(d.probleDescription || '');
+                        const combined = desc + ' ' + problem;
+
+                        if (
+                            combined.includes('مرتجع') ||
+                            combined.toLowerCase().includes('return delivery') ||
+                            combined.toLowerCase().includes('returned') ||
+                            combined.toLowerCase().includes('return')
+                        ) {
+                            hasReturn = true;
+                        }
+                        if (
+                            desc.includes('تم التسليم') ||
+                            desc.includes('Delivered') ||
+                            desc.includes('delivered')
+                        ) {
+                            hasDelivered = true;
                         }
                     }
-                    return finalStatus;
+
+                    // الأولوية: مرتجع > تم التسليم > الحالة العامة من السيرفر
+                    if (hasReturn) return 'مرتجع';
+                    if (hasDelivered) return 'تم التسليم';
+
+                    return data.data[0].status || null;
                 }
                 return null;
-            } catch (e) { 
+            } catch (e) {
                 console.error('فشل تتبع:', trackingNumber, e);
-                return null; 
+                return null;
             }
         }
 
@@ -3076,7 +3099,10 @@
                 // تثبيت الشحنة نهائيًا في هذه الجلسة بمجرد وصول حالة حقيقية
                 stabilizedShipments.add(idStr);
 
-                if (newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
+                if (newStatus === 'مرتجع') {
+                    statusSpan.className = 'status-badge pending';
+                    statusSpan.innerHTML = `<i class="fas fa-undo"></i> مرتجع`;
+                } else if (newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
                     statusSpan.className = 'status-badge delivered';
                     statusSpan.innerHTML = `<i class="fas fa-check"></i> تم التسليم`;
                 } else if (newStatus.includes('تم الاستلام')) {
@@ -3416,7 +3442,11 @@
 
             const shipmentStatus = s.status || null;
             if (shipmentStatus) {
-                if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
+                if (shipmentStatus === 'مرتجع') {
+                    defaultStatus = 'مرتجع';
+                    statusClass = 'pending';
+                    statusIcon = 'fa-undo';
+                } else if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
                     defaultStatus = 'تم التسليم';
                     statusClass = '';
                     statusIcon = 'fa-check';
@@ -3491,7 +3521,11 @@
 
             const shipmentStatus = s.status || null;
             if (shipmentStatus) {
-                if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
+                if (shipmentStatus === 'مرتجع') {
+                    defaultStatus = 'مرتجع';
+                    statusClass = 'pending';
+                    statusIcon = 'fa-undo';
+                } else if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
                     defaultStatus = 'تم التسليم';
                     statusClass = 'delivered';
                     statusIcon = 'fa-check';
