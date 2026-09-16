@@ -2919,6 +2919,7 @@
         function logout() {
             stopLiveRefresh();
             stopAutoUpdate();
+            stabilizedShipments.clear();
             currentUser = null;
             clearUserSession();
             document.getElementById('loginPage').classList.remove('hidden');
@@ -3028,7 +3029,9 @@
                 const localShipment = allShipmentsData.find(s => String(s.id) === idStr);
                 if (localShipment) localShipment.status = newStatus;
 
-                stabilizedShipments.add(idStr);
+                if (newStatus === 'مرتجع' || newStatus.includes('تم التسليم') || newStatus.includes('Delivered')) {
+                    stabilizedShipments.add(idStr);
+                }
 
                 if (newStatus === 'مرتجع') {
                     statusSpan.className = 'status-badge pending';
@@ -3326,9 +3329,9 @@
             const displayPhone = s.receiverPhone || s.customerPhone || '';
             const displayAmount = s.amount || '0';
 
-            let defaultStatus = 'جاري التحميل...';
-            let statusClass = 'pending';
-            let statusIcon = 'fa-spinner fa-spin';
+            let defaultStatus = 'تم الاستلام';
+            let statusClass = 'received';
+            let statusIcon = 'fa-check';
 
             const shipmentStatus = s.status || null;
             if (shipmentStatus) {
@@ -3338,21 +3341,17 @@
                     statusIcon = 'fa-undo';
                 } else if (shipmentStatus.includes('تم التسليم') || shipmentStatus.includes('Delivered')) {
                     defaultStatus = 'تم التسليم';
-                    statusClass = '';
+                    statusClass = 'delivered';
                     statusIcon = 'fa-check';
                 } else if (shipmentStatus.includes('تم الاستلام')) {
                     defaultStatus = 'تم الاستلام';
-                    statusClass = '';
+                    statusClass = 'received';
                     statusIcon = 'fa-check';
                 } else {
                     defaultStatus = shipmentStatus;
                     statusClass = 'pending';
                     statusIcon = 'fa-hourglass-half';
                 }
-            } else if (hasTracking) {
-                defaultStatus = 'جاري التحميل...';
-                statusClass = 'pending';
-                statusIcon = 'fa-spinner fa-spin';
             }
 
             const statusBadge = `
@@ -3405,9 +3404,9 @@
         }
 
         function buildStatusBadgeHtml(s, hasTracking) {
-            let defaultStatus = 'جاري التحميل...';
-            let statusClass = 'pending';
-            let statusIcon = 'fa-spinner fa-spin';
+            let defaultStatus = 'تم الاستلام';
+            let statusClass = 'received';
+            let statusIcon = 'fa-check';
 
             const shipmentStatus = s.status || null;
             if (shipmentStatus) {
