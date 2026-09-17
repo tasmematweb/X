@@ -1968,6 +1968,11 @@
             border-color: #0076ff;
             color: #fff;
         }
+        .shipments-table .status-badge.returned {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #fff;
+        }
         .table-actions-cell { white-space: nowrap; }
         .table-action-btn {
             border: none;
@@ -3069,6 +3074,9 @@
                 } else if (newStatus.includes('تم الاستلام')) {
                     statusSpan.className = 'status-badge received';
                     statusSpan.innerHTML = `<i class="fas fa-check"></i> تم الاستلام`;
+                } else if (newStatus.includes('مرتجع')) {
+                    statusSpan.className = 'status-badge returned';
+                    statusSpan.innerHTML = `<i class="fas fa-undo-alt"></i> مرتجع`;
                 } else {
                     statusSpan.className = 'status-badge pending';
                     statusSpan.innerHTML = `<i class="fas fa-hourglass-half"></i> ${newStatus}`;
@@ -3466,6 +3474,10 @@
                     defaultStatus = 'تم الاستلام';
                     statusClass = 'received';
                     statusIcon = 'fa-check';
+                } else if (shipmentStatus.includes('مرتجع')) {
+                    defaultStatus = 'مرتجع';
+                    statusClass = 'returned';
+                    statusIcon = 'fa-undo-alt';
                 } else {
                     defaultStatus = shipmentStatus;
                     statusClass = 'pending';
